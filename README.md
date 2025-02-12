@@ -60,7 +60,7 @@ Ensure you have the following installed:
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/Martin4dbest/Game1
+   git clone https://github.com/Martin4dbest/T-game-app
    ```
 
 2. Navigate to the project directory:
