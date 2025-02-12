@@ -66,7 +66,7 @@ Ensure you have the following installed:
 2. Navigate to the project directory:
 
    ```sh
-   cd Game1
+   cd T-game-app
    ```
 
 3. Install dependencies:
