@@ -33,14 +33,22 @@ The game features energetic beats inspired by **Terry G**, making your running e
 
 ## 📂 Folder Structure
 ```
-📂 TerryG-UltimateRunner
-├── 📄 main.py          # Game logic
-├── 📄 player.py        # Player class
-├── 📄 obstacles.py     # Obstacle classes
-├── 📂 assets          # Images & sounds
-├── 📂 fonts           # Game fonts
-└── 📄 README.md        # Game documentation
-```
+📂 T-game-app/minigame_bonus
+├── 📄 __init__.py
+├── 📂 __pycache__/
+├── 📄 app2.py
+├── 📄 app3.py
+├── 📄 app4.py
+├── 🖼️ background.png
+├── 🎵 cartoon-fail-trumpet.mp3
+├── 📂 images/
+├── 📄 main.py
+├── 🎵 music.mp3
+├── 📄 README.md
+├── 📄 requirements.txt
+├── 📄 scores.txt
+└── 📄 test.py
+
 
 ## 📜 License
 This project is open-source and available for modification and improvement.
