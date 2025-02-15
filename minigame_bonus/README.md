@@ -1,22 +1,49 @@
-# Side Scroller
+# Terry G's Ultimate Runner
 
-This is the code base for the side scroller tutorial videos posted on my YouTube channel. 
+## 🏃 About the Game
+**Terry G's Ultimate Runner** is an exciting side-scrolling endless runner game built with Python and Pygame. Control Terry G as he sprints through obstacles, collecting points and increasing speed. How far can you go before you stumble?
 
-You can check out the tutorial videos here: https://www.youtube.com/watch?v=PjgLeP0G5Yw&t=53s
+## 🎮 Features
+- Fast-paced, engaging gameplay
+- Dynamic obstacle generation
+- Increasing difficulty as you progress
+- Sound effects for an immersive experience
+- Responsive controls for smooth gameplay
 
-# Requirements
+## 🛠️ Requirements
 - Python 3.x
-- pygame
+- pygame library
 
-# 💻 Launch Your Software Development Career Today!  
+## 🚀 How to Play
+1. Install dependencies using:
+   ```sh
+   pip install pygame
+   ```
+2. Run the game with:
+   ```sh
+   python main.py
+   ```
+3. Controls:
+   - **Spacebar / Up Arrow** - Jump
+   - **Down Arrow** - Slide
+   - **Escape** - Quit the game
 
-🎓 **No degree? No problem!** My program equips you with everything you need to break into tech and land an entry-level software development role.  
+## 🎵 Soundtrack
+The game features energetic beats inspired by **Terry G**, making your running experience even more thrilling!
 
-🚀 **Why Join?**  
-- 💼 **$70k+ starting salary potential**  
-- 🕐 **Self-paced:** Complete on your own time  
-- 🤑 **Affordable:** Low risk compared to expensive bootcamps or degrees
-- 🎯 **45,000+ job openings** in the market  
+## 📂 Folder Structure
+```
+📂 TerryG-UltimateRunner
+├── 📄 main.py          # Game logic
+├── 📄 player.py        # Player class
+├── 📄 obstacles.py     # Obstacle classes
+├── 📂 assets          # Images & sounds
+├── 📂 fonts           # Game fonts
+└── 📄 README.md        # Game documentation
+```
 
-👉 **[Start your journey today!](https://techwithtim.net/dev)**  
-No experience needed—just your determination. Future-proof your career and unlock six-figure potential like many of our students have!  
+## 📜 License
+This project is open-source and available for modification and improvement.
+
+🔥 **Ready to run? Let's go!**
+
