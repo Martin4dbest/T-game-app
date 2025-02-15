@@ -1,0 +1,1 @@
+{"Terry17": {"password": "terry001"}, "& C:/Users/USER/AppData/Local/Programs/Python/Python312/python.exe \"c:/Users/USER/Documents/VS Code Python/Main.py\"": {"password": "& C:/Users/USER/AppData/Local/Programs/Python/Python312/python.exe \"c:/Users/USER/Documents/VS Code Python/Main.py\""}, "Oscar": {"password": "Oscar17"}}

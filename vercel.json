@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "QUIZ_game_app",
+  "builds": [
+    {
+      "src": "app3.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app3.py"
+    }
+  ]
+}

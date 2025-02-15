@@ -1,0 +1,52 @@
+# Bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+
+# Logs & temp files
+*.log
+*.tmp
+*.swp
+*.swo
+*.swn
+*.bak
+*.db
+
+# Ignore compiled Cython files
+*.so
+*.pyd
+
+# Ignore package distributions
+dist/
+build/
+*.egg-info/
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Pygame-related assets (optional)
+*.wav
+*.mp3
+*.ogg
+*.ttf
+*.otf
+*.xcf
+*.blend
+
+# Ignore screenshots or test images
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
