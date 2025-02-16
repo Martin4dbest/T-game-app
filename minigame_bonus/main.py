@@ -63,6 +63,8 @@ fallSpeed = 0
 obstacles = []
 
 
+
+
 class Player:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -98,6 +100,7 @@ class Player:
         win.blit(self.image, (self.x, self.y))  # Draw the player image
 
 
+
 class Obstacle:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -108,43 +111,18 @@ class Obstacle:
 
     def move(self, speed):
         self.x -= (speed / 30) * 1.4
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.hitbox.x = self.x  # Update hitbox position
 
     def draw(self, win):
-        pygame.draw.rect(win, (255, 0, 0), self.hitbox)
+        pygame.draw.rect(win, (255, 0, 0), self.hitbox)  # Draw obstacle in red
 
     def collide(self, player_hitbox):
         return self.hitbox.colliderect(player_hitbox)
-
+    
 
 class Saw(Obstacle):
     def __init__(self, x, y):
         super().__init__(x, y, 64, 64)
-
-
-"""
-class Spike(Obstacle):
-    def __init__(self, x, y):
-        super().__init__(x, y, 48, 310)
-
-"""
-class Obstacle:
-    def __init__(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
-
-    def move(self, speed):
-        self.x -= (speed / 30) * 1.4
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
-
-    def draw(self, win):
-        pygame.draw.rect(win, (255, 0, 0), self.hitbox)
-
-    def collide(self, player_hitbox):
-        return self.hitbox.colliderect(player_hitbox)
 
 
 class Spike(Obstacle):
@@ -259,6 +237,94 @@ class Blade(Obstacle):
         pygame.draw.ellipse(win, (255, 255, 0), self.hitbox)
 
 
+"""
+class BladeObstacle(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 60, 60)
+        self.speed_x = random.randint(8, 15)
+        self.speed_y = random.choice([-5, 5])
+        self.rotation_angle = 0
+
+        try:
+            self.original_image = pygame.image.load("images/blade.png")
+            self.original_image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        except pygame.error:
+            print("Warning: blade.png not found! Using placeholder.")
+            self.original_image = pygame.Surface((self.width, self.height))
+            self.original_image.fill((255, 0, 0))  
+
+        self.image = self.original_image  
+
+    def move(self, speed):
+        self.x -= speed  
+        print(f"Blade moved to {self.x}, {self.y}") 
+        self.y += self.speed_y  # Move up/down
+        if self.y <= 50 or self.y >= 500:
+            self.speed_y *= -1  # Reverse direction
+
+        # Update hitbox
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def move(self, speed):
+        print(f"Before move: Blade at {self.x}, {self.y}")  # Debugging output
+    
+        self.x -= speed  # Use the provided speed for movement
+        self.y += self.speed_y  # Move up/down
+
+        # Bounce off top and bottom screen edges
+        if self.y <= 50 or self.y >= 500:
+            self.speed_y *= -1  # Reverse direction
+
+        # Update hitbox
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        
+
+    def move(self, speed):
+    
+        print(f"Before move: Blade at {self.x}, {self.y}")  # Debugging output
+
+        self.x -= (self.speed_x + speed)  # Move left, factoring in extra speed
+        self.y += self.speed_y  # Move up/down
+
+        if self.y <= 50 or self.y >= 500:
+            self.speed_y *= -1  # Reverse direction
+
+        # Reset blade when it moves off-screen
+        if self.x < -self.width:  # If blade fully exits left
+            self.x = random.randint(800, 1200)  # Respawn on the right
+            self.y = random.randint(50, 500)  # Random vertical position
+            print(f"Blade respawned at {self.x}, {self.y}")  # Debugging output
+
+        print(f"After move: Blade at {self.x}, {self.y}")  # Debugging output)
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+
+
+        
+
+    def draw(self, win):
+        self.rotation_angle += 10  
+        self.image = pygame.transform.rotate(self.original_image, self.rotation_angle)
+        
+        rotated_rect = self.image.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
+        win.blit(self.image, rotated_rect.topleft)
+
+blades = [BladeObstacle(random.randint(600, 1200), random.randint(50, 500)) for _ in range(5)]
+
+print(f"Spawned {len(blades)} blades")  # ✅ Check if blades exist
+
+
+
+for blade in blades:
+    blade.move(speed)  
+    blade.draw(win)
+
+    """
+       
+
+
+
 # Additional Obstacle: Rolling Ball
 class RollingBall(Obstacle):
     def __init__(self, x, y):
@@ -274,6 +340,10 @@ class RollingBall(Obstacle):
 
     def draw(self, win):
         pygame.draw.circle(win, (0, 255, 255), (self.x + self.width // 2, self.y + self.height // 2), self.width // 2)
+
+
+
+
 
 
 # Example Usage in Game
@@ -367,7 +437,7 @@ def end_screen():
 
 
 def start_game():
-    global speed, score, runner, obstacles, pause, fallSpeed
+    global speed, score, runner, obstacles, blades, pause, fallSpeed
 
     pygame.time.set_timer(pygame.USEREVENT + 1, 500)  # Increase speed every 0.5s
     pygame.time.set_timer(pygame.USEREVENT + 2, 3000)  # Spawn obstacle every 3s
@@ -377,6 +447,7 @@ def start_game():
     score = 0
     runner = Player(200, 313, 64, 64)
     obstacles = []
+    #blades = [BladeObstacle(random.randint(600, 1200), random.randint(50, 500)) for _ in range(3)]  # ✅ Blade Obstacles added
     pause = 0
     fallSpeed = 0
 
@@ -411,6 +482,12 @@ def start_game():
             if obstacle.x < -64:
                 obstacles.remove(obstacle)
 
+        # ✅ Move and draw blades so they persist across backgrounds
+        """
+        for blade in blades:
+            blade.move(speed)
+            blade.draw(win)
+        """
         # Event Handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -438,8 +515,9 @@ def start_game():
         runner.move()
         redraw_window()
 
+
+
 # Start game
 if __name__ == "__main__":
     start_game()
-    pygame.quit() 
-
+    pygame.quit()
