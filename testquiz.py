@@ -18,11 +18,9 @@ import tkinter.simpledialog as simpledialog
 import time
 
 
+from minigame_bonus.main import start_game
 
 
-#from minigame_bonus import start_game
-
-#start_game()  # Start the minigame
 
 
 
@@ -462,162 +460,155 @@ def create_login_window():
 
 
 def main_game(category, username):
+    import pyttsx3
+    import sqlite3
+    from tkinter import Toplevel, Label, Button, simpledialog
+    from pygame import mixer
+    
     # Initialize pyttsx3 engine
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
-
     
-
     # Initialize mixer and play background music
     mixer.init()
     mixer.music.load("kbc.mp3")
     mixer.music.play(-1)  
-
+    
+    question_counter = 0  # Initialize question counter
+    
     def select(event):
+        nonlocal question_counter  # Ensure we modify the outer scope variable
         callButtton.place_forget()
         progressBarA.place_forget()
         progressBarB.place_forget()
         progressBarC.place_forget()
         progressBarD.place_forget()
-
-
+        
         progressbarLabelA.place_forget()
         progressbarLabelB.place_forget()
         progressbarLabelC.place_forget()
         progressbarLabelD.place_forget()
-        b=event.widget
-        value=b["text"]
-
-        for i in range(15):
-            if value==correct_answers[i]:
-                if value==correct_answers[14]:
-                    def close():
-                        root2.destroy()
-                        root.destroy()
-                    def playagain():
-                        lifeline50Button.config(state=NORMAL,image=image50)
-                        audiencePoleButton.config(state=NORMAL,image=audiencePole)
-                        phoneLifeLineButton.config(state=NORMAL,image=phoneImage)
-                        root2.destroy()
-                        questionArea.delete(1.0,END)
-                        questionArea.insert(END,question[0])
-                        optionButton1.config(text=First_options[0])
-                        optionButton2.config(text=Second_options[0])
-                        optionButton3.config(text=Third_options[0])
-                        optionButton4.config(text=Fourth_options[0])
-                        #amountLabel.config(image=amountImages)
-
-                        entered_category = simpledialog.askstring("Input", " INPUT CATEGORY PLAYED AND CHECK LEADERBOARD:")
-                        if entered_category:
-                            amount_won = 100000000  # Placeholder, replace with actual score data
-                            conn = sqlite3.connect("users.db")
-                            c = conn.cursor()
-                            c.execute("INSERT INTO leaderboard (username, category_played, amount_won) VALUES (?, ?, ?)",
-                                      (username, entered_category, amount_won))
-                            conn.commit()
-                            conn.close()
-
-                # load_new_questions()
-
-                    mixer.music.stop()
-                    mixer.music.load("kbcwon.mp3")
-                    mixer.music.play()
-                    root2=Toplevel()
-                    root2.config(bg="black")
-                    root2.geometry("500x400+140+30")
-                    root2.title("You won 100,000,000 pounds")
-                    imgLabel=Label(root2,image=centerImage,bd=0)
-                    imgLabel.configure(bg="black")
-                    imgLabel.pack(pady=30)
-                    
-                    tryAgainButton = Button(root2, text="Congratulation! Enter the Category played!!", command=playagain)
-                    tryAgainButton.pack()
-
-
-
-
-
-
-
-                    
-                    winLabel=Label(root2, text="You Won",font=("arial", 40, "bold",), bg='black', fg="white")
-                    winLabel.pack()
-
-                    playagainButton=Button(root2, text="Play Again",font=("arial",20,"bold"),bg="black", fg="white",activebackground="black",activeforeground="white",bd=0,cursor="hand2",command=playagain)
-                    playagainButton.pack()
-
-                    closeButton=Button(root2, text="Close",font=("arial",20,"bold"),bg="black", fg="white",activebackground="black",activeforeground="white",bd=0,cursor="hand2",command=close)
-                    closeButton.pack()
-
-                    happyimage=PhotoImage(file="happy.png")
-                    happyLabel=Label(root2,image=happyimage,bg="black")
-                    happyLabel.place(x=30,y=280)
-                        
-                    happyLabel1=Label(root2,image=happyimage,bg="black")
-                    happyLabel1.place(x=400,y=280)
-
-
-                    root2.mainloop()
-                    break
-
-                questionArea.delete(1.0,END)
-                questionArea.insert(END,question[i+1])
-                optionButton1.config(text=First_options[i+1])
-                optionButton2.config(text=Second_options[i+1])
-                optionButton3.config(text=Third_options[i+1])
-                optionButton4.config(text=Fourth_options[i+1])
-                amountLabel.configure(image=amountImages[i])
-                amountLabel.image = amountImages[i]
-
-
-            if value not in correct_answers:
+        
+        b = event.widget
+        value = b["text"]
+        
+        # Check if answer is correct
+        if value == correct_answers[question_counter]:
+            question_counter += 1  # Increment question count
+            
+            # If final question is correct
+            if question_counter == 15:
                 def close():
-                    root1.destroy()
+                    root2.destroy()
                     root.destroy()
-                def tryagain():
-                    lifeline50Button.config(state=NORMAL,image=image50)
-                    audiencePoleButton.config(state=NORMAL,image=audiencePole)
-                    phoneLifeLineButton.config(state=NORMAL,image=phoneImage)
-                    root1.destroy()
-                    questionArea.delete(1.0,END)
-                    questionArea.insert(END,question[0])
+                
+                def playagain():
+                    lifeline50Button.config(state=NORMAL, image=image50)
+                    audiencePoleButton.config(state=NORMAL, image=audiencePole)
+                    phoneLifeLineButton.config(state=NORMAL, image=phoneImage)
+                    root2.destroy()
+                    questionArea.delete(1.0, END)
+                    questionArea.insert(END, question[0])
                     optionButton1.config(text=First_options[0])
                     optionButton2.config(text=Second_options[0])
                     optionButton3.config(text=Third_options[0])
                     optionButton4.config(text=Fourth_options[0])
-                    amountLabel.config(image=amountImages[0])
-
-                root1=Toplevel()
-                root1.config(bg="black")
-                root1.geometry("500x400+140+30")
-                root1.title("You won 0 pounds")
-                imgLabel=Label(root1,image=centerImage,bd=0)
-                imgLabel.pack(pady=30)
-
-
-
-                loseLabel=Label(root1, text="You lose",font=("arial", 40, "bold",), bg='black', fg="white")
-                loseLabel.pack()
-
-                tryagainButton=Button(root1, text="Try Again",font=("arial",20,"bold"),bg="black", fg="white",activebackground="black",activeforeground="white",bd=0,cursor="hand2",command=tryagain)
-                tryagainButton.pack()
-
-                closeButton=Button(root1, text="Close",font=("arial",20,"bold"),bg="black", fg="white",activebackground="black",activeforeground="white",bd=0,cursor="hand2",command=close)
-                closeButton.pack()
-
-                sadimage=PhotoImage(file="sad.png")
-                sadLabel=Label(root1,image=sadimage,bg="black")
-                sadLabel.place(x=30,y=280)
+                    
+                    entered_category = simpledialog.askstring("Input", "INPUT CATEGORY PLAYED AND CHECK LEADERBOARD:")
+                    if entered_category:
+                        amount_won = 100000000  # Placeholder, replace with actual score data
+                        conn = sqlite3.connect("users.db")
+                        c = conn.cursor()
+                        c.execute("INSERT INTO leaderboard (username, category_played, amount_won) VALUES (?, ?, ?)",
+                                  (username, entered_category, amount_won))
+                        conn.commit()
+                        conn.close()
                 
-                sadLabel1=Label(root1,image=sadimage,bg="black")
-                sadLabel1.place(x=400,y=280)
-                root1.mainloop()
-                break
+                mixer.music.stop()
+                mixer.music.load("kbcwon.mp3")
+                mixer.music.play()
+                
+                root2 = Toplevel()
+                root2.config(bg="black")
+                root2.geometry("500x400+140+30")
+                root2.title("You won 100,000,000 pounds")
+                
+                imgLabel = Label(root2, image=centerImage, bd=0, bg="black")
+                imgLabel.pack(pady=30)
+                
+                tryAgainButton = Button(root2, text="Congratulation! Enter the Category played!!", command=playagain)
+                tryAgainButton.pack()
+                
+                winLabel = Label(root2, text="You Won", font=("arial", 40, "bold"), bg='black', fg="white")
+                winLabel.pack()
+                
+                playagainButton = Button(root2, text="Play Again", font=("arial", 20, "bold"), bg="black", fg="white", command=playagain)
+                playagainButton.pack()
+                
+                closeButton = Button(root2, text="Close", font=("arial", 20, "bold"), bg="black", fg="white", command=close)
+                closeButton.pack()
+                
+                root2.mainloop()
+                return
+            
+            # Every 3 questions, trigger the minigame
+            
+            if question_counter % 3 == 0:
+                mixer.music.stop()
+                start_game()  # Call minigame
+                mixer.music.play(-1)  # Resume background music after minigame
 
+                
+            
+            # Load next question
+            questionArea.delete(1.0, END)
+            questionArea.insert(END, question[question_counter])
+            optionButton1.config(text=First_options[question_counter])
+            optionButton2.config(text=Second_options[question_counter])
+            optionButton3.config(text=Third_options[question_counter])
+            optionButton4.config(text=Fourth_options[question_counter])
+            amountLabel.configure(image=amountImages[question_counter])
+            
+        else:
+            def close():
+                root1.destroy()
+                root.destroy()
+            
+            def tryagain():
+                lifeline50Button.config(state=NORMAL, image=image50)
+                audiencePoleButton.config(state=NORMAL, image=audiencePole)
+                phoneLifeLineButton.config(state=NORMAL, image=phoneImage)
+                root1.destroy()
+                questionArea.delete(1.0, END)
+                questionArea.insert(END, question[0])
+                optionButton1.config(text=First_options[0])
+                optionButton2.config(text=Second_options[0])
+                optionButton3.config(text=Third_options[0])
+                optionButton4.config(text=Fourth_options[0])
+                amountLabel.config(image=amountImages[0])
+            
+            root1 = Toplevel()
+            root1.config(bg="black")
+            root1.geometry("500x400+140+30")
+            root1.title("You won 0 pounds")
+            
+            imgLabel = Label(root1, image=centerImage, bd=0)
+            imgLabel.pack(pady=30)
+            
+            loseLabel = Label(root1, text="You lose", font=("arial", 40, "bold"), bg='black', fg="white")
+            loseLabel.pack()
+            
+            tryagainButton = Button(root1, text="Try Again", font=("arial", 20, "bold"), bg="black", fg="white", command=tryagain)
+            tryagainButton.pack()
+            
+            closeButton = Button(root1, text="Close", font=("arial", 20, "bold"), bg="black", fg="white", command=close)
+            closeButton.pack()
+            
+            root1.mainloop()
 
     
-
+    
 
 
 
@@ -2000,7 +1991,12 @@ def main_game(category, username):
     root.mainloop()
 
 
+
 create_login_window()
+
+
+
+    
 
 
 

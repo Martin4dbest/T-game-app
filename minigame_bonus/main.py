@@ -4,9 +4,12 @@ import sys
 import os
 import math
 
-
 pygame.init()
 pygame.mixer.init()
+
+# Get the path of the current script (inside minigame_bonus)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+IMAGES_DIR = os.path.join(BASE_DIR, "images")  # Now correctly points to minigame_bonus/images
 
 # Screen settings
 WIDTH, HEIGHT = 1000, 700
@@ -14,8 +17,8 @@ win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Terry G's Ultimate Runner 🏃🏳‍⚡")  
 
 # Load and play background music
-music_path = "music.mp3"
-failure_sound_path = "cartoon-fail-trumpet.mp3"
+music_path = os.path.join(BASE_DIR, "music.mp3")
+failure_sound_path = os.path.join(BASE_DIR, "cartoon-fail-trumpet.mp3")
 
 if os.path.exists(music_path):
     pygame.mixer.music.load(music_path)
@@ -30,14 +33,10 @@ else:
     print("Warning: 'cartoon-fail-trumpet.mp3' not found! No failure sound will play.")
     failure_sound = None
 
-# Ensure the images folder exists
-if not os.path.exists("images"):
-    os.makedirs("images")
-
 # Load multiple backgrounds from the "images" folder
 backgrounds = []
 for i in range(1, 7):
-    path = os.path.join("images", f"background{i}.png")  # Ensure correct path
+    path = os.path.join(IMAGES_DIR, f"background{i}.png")  # Ensure correct path
     if os.path.exists(path):
         backgrounds.append(pygame.image.load(path))
     else:
@@ -64,8 +63,6 @@ fallSpeed = 0
 obstacles = []
 
 
-import pygame
-
 class Player:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -76,9 +73,15 @@ class Player:
         self.sliding = False
         self.falling = False
 
-        # Load and scale the player image
-        self.image = pygame.image.load("images/myrunner.png")  # Replace with your image filename
-        self.image = pygame.transform.scale(self.image, (width, height))
+        # Load and scale the player image using absolute path
+        player_image_path = os.path.join(IMAGES_DIR, "myrunner.png")
+        if os.path.exists(player_image_path):
+            self.image = pygame.image.load(player_image_path)
+            self.image = pygame.transform.scale(self.image, (width, height))
+        else:
+            print(f"Warning: '{player_image_path}' not found! Using a placeholder color.")
+            self.image = pygame.Surface((width, height))
+            self.image.fill((255, 0, 0))  # Red color for missing player image
 
         self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
 
@@ -93,7 +96,6 @@ class Player:
 
     def draw(self, win):
         win.blit(self.image, (self.x, self.y))  # Draw the player image
-
 
 
 class Obstacle:
@@ -113,6 +115,7 @@ class Obstacle:
 
     def collide(self, player_hitbox):
         return self.hitbox.colliderect(player_hitbox)
+
 
 class Saw(Obstacle):
     def __init__(self, x, y):
@@ -363,11 +366,6 @@ def end_screen():
 
 
 
-import pygame
-import sys
-import os
-import random
-
 def start_game():
     global speed, score, runner, obstacles, pause, fallSpeed
 
@@ -441,4 +439,7 @@ def start_game():
         redraw_window()
 
 # Start game
-start_game()
+if __name__ == "__main__":
+    start_game()
+    pygame.quit() 
+
