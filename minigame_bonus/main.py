@@ -237,91 +237,7 @@ class Blade(Obstacle):
         pygame.draw.ellipse(win, (255, 255, 0), self.hitbox)
 
 
-"""
-class BladeObstacle(Obstacle):
-    def __init__(self, x, y):
-        super().__init__(x, y, 60, 60)
-        self.speed_x = random.randint(8, 15)
-        self.speed_y = random.choice([-5, 5])
-        self.rotation_angle = 0
 
-        try:
-            self.original_image = pygame.image.load("images/blade.png")
-            self.original_image = pygame.transform.scale(self.original_image, (self.width, self.height))
-        except pygame.error:
-            print("Warning: blade.png not found! Using placeholder.")
-            self.original_image = pygame.Surface((self.width, self.height))
-            self.original_image.fill((255, 0, 0))  
-
-        self.image = self.original_image  
-
-    def move(self, speed):
-        self.x -= speed  
-        print(f"Blade moved to {self.x}, {self.y}") 
-        self.y += self.speed_y  # Move up/down
-        if self.y <= 50 or self.y >= 500:
-            self.speed_y *= -1  # Reverse direction
-
-        # Update hitbox
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
-
-    def move(self, speed):
-        print(f"Before move: Blade at {self.x}, {self.y}")  # Debugging output
-    
-        self.x -= speed  # Use the provided speed for movement
-        self.y += self.speed_y  # Move up/down
-
-        # Bounce off top and bottom screen edges
-        if self.y <= 50 or self.y >= 500:
-            self.speed_y *= -1  # Reverse direction
-
-        # Update hitbox
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
-
-        
-
-    def move(self, speed):
-    
-        print(f"Before move: Blade at {self.x}, {self.y}")  # Debugging output
-
-        self.x -= (self.speed_x + speed)  # Move left, factoring in extra speed
-        self.y += self.speed_y  # Move up/down
-
-        if self.y <= 50 or self.y >= 500:
-            self.speed_y *= -1  # Reverse direction
-
-        # Reset blade when it moves off-screen
-        if self.x < -self.width:  # If blade fully exits left
-            self.x = random.randint(800, 1200)  # Respawn on the right
-            self.y = random.randint(50, 500)  # Random vertical position
-            print(f"Blade respawned at {self.x}, {self.y}")  # Debugging output
-
-        print(f"After move: Blade at {self.x}, {self.y}")  # Debugging output)
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
-
-
-
-        
-
-    def draw(self, win):
-        self.rotation_angle += 10  
-        self.image = pygame.transform.rotate(self.original_image, self.rotation_angle)
-        
-        rotated_rect = self.image.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
-        win.blit(self.image, rotated_rect.topleft)
-
-blades = [BladeObstacle(random.randint(600, 1200), random.randint(50, 500)) for _ in range(5)]
-
-print(f"Spawned {len(blades)} blades")  # ✅ Check if blades exist
-
-
-
-for blade in blades:
-    blade.move(speed)  
-    blade.draw(win)
-
-    """
-       
 
 
 
@@ -434,26 +350,21 @@ def end_screen():
                     pygame.quit()
                     sys.exit()
 
-
-
 def start_game():
     global speed, score, runner, obstacles, blades, pause, fallSpeed
 
-    pygame.time.set_timer(pygame.USEREVENT + 1, 500)  # Increase speed every 0.5s
-    pygame.time.set_timer(pygame.USEREVENT + 2, 3000)  # Spawn obstacle every 3s
+    pygame.time.set_timer(pygame.USEREVENT + 1, 500)
+    pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
 
-    # Reset variables
     speed = 30
     score = 0
     runner = Player(200, 313, 64, 64)
     obstacles = []
-    #blades = [BladeObstacle(random.randint(600, 1200), random.randint(50, 500)) for _ in range(3)]  # ✅ Blade Obstacles added
     pause = 0
     fallSpeed = 0
 
-    # Restart background music on game restart
     if 'music_path' in globals() and os.path.exists(music_path):
-        pygame.mixer.music.play(-1)  # Loop indefinitely
+        pygame.mixer.music.play(-1)
 
     run = True
     while run:
@@ -465,30 +376,22 @@ def start_game():
                 end_screen()
                 return
 
-        # Score updates with speed increase
         score = speed // 10 - 3
 
-        for obstacle in obstacles[:]:  # Use a copy to safely remove items
+        for obstacle in obstacles[:]:
             obstacle.move(speed)
             if obstacle.collide(runner.hitbox):
                 runner.falling = True
                 if pause == 0:
                     pause = 1
                     fallSpeed = speed
-                    pygame.mixer.music.stop()  # Stop background music
+                    pygame.mixer.music.stop()
                     if 'failure_sound' in globals() and failure_sound:
-                        failure_sound.play()  # Play failure sound
+                        failure_sound.play()
 
             if obstacle.x < -64:
                 obstacles.remove(obstacle)
 
-        # ✅ Move and draw blades so they persist across backgrounds
-        """
-        for blade in blades:
-            blade.move(speed)
-            blade.draw(win)
-        """
-        # Event Handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -498,12 +401,19 @@ def start_game():
                 speed += 1
 
             if event.type == pygame.USEREVENT + 2:
-                if random.choice([True, False]):
-                    obstacles.append(Saw(810, 310))
-                else:
-                    obstacles.append(Spike(810, 0))
+                if len(obstacles) < 5:
+                    num_obstacles = random.randint(1, 2)
+                    section_width = WIDTH // num_obstacles
 
-        # Player controls
+                    for i in range(num_obstacles):
+                        x_pos = random.randint(i * section_width + 50, (i + 1) * section_width - 50)
+                        y_pos = random.choice([313, 400])
+
+                        if random.choice([True, False]):
+                            obstacles.append(Saw(x_pos, y_pos))
+                        else:
+                            obstacles.append(Spike(x_pos, y_pos))
+
         keys = pygame.key.get_pressed()
         if not runner.falling:
             if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
@@ -516,8 +426,7 @@ def start_game():
         redraw_window()
 
 
-
-# Start game
 if __name__ == "__main__":
     start_game()
     pygame.quit()
+
