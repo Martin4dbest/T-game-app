@@ -318,28 +318,36 @@ def create_leaderboard_table():
 
 
 
-
 def show_rules():
     """Opens a new window displaying the game rules."""
-    rules_window = tk.Toplevel(category_window)  # Create a new window
+    rules_window = tk.Toplevel(category_window)
     rules_window.title("Game Rules")
     rules_window.geometry("400x300")
     rules_window.configure(bg="black")
 
-    rules_text = """Welcome to the Game!
-    
-    1. Answer questions correctly to progress.
-    2. Incorrect answers may lead to challenges.
-    3. Minigames will appear at random intervals.
-    4. Complete challenges to continue.
-    5. Have fun and do your best!
-    """
+    rules_text = """🎉 Welcome to the Ultimate Challenge! 🎮
 
-    label = tk.Label(rules_window, text=rules_text, wraplength=350, justify="left", fg="white", bg="black")
-    label.pack(pady=10, padx=10)
+🔥 Rules of the Game:
 
-    back_button = tk.Button(rules_window, text="Back", command=rules_window.destroy, bg="red", fg="white")
+1️⃣ ✅ Answer questions correctly to move forward!
+2️⃣ ❌ Wrong answers? Get ready for unexpected challenges!
+3️⃣ 🎲 Minigames will pop up at random—stay sharp!
+4️⃣ 🏆 Complete challenges to keep your streak alive!
+5️⃣ 🎯 Enjoy, have fun, and give it your best shot!
+
+Let’s see if you have what it takes! 🚀💡
+"""
+
+    text_widget = tk.Text(rules_window, wrap="word", fg="white", bg="black", font=("Segoe UI Emoji", 12))
+    text_widget.insert("1.0", rules_text)
+    text_widget.config(state="disabled")  # Make it read-only
+    text_widget.pack(pady=10, padx=10)
+
+    back_button = tk.Button(rules_window, text="Back", command=rules_window.destroy, bg="red", fg="white", 
+                            font=("Arial", 10, "bold"))
     back_button.pack(pady=10)
+
+
 
 def show_category_selection(username):
     global category_window
