@@ -16,10 +16,9 @@ from tkinter import Tk, Entry, Label, Button, messagebox
 from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
-#from minigame_bonus.main import start_game
-from tkinter import Toplevel, Label, Button, simpledialog, END
 
 
+from minigame_bonus.main import start_game
 
 
 
@@ -165,6 +164,26 @@ def show_leaderboard():
     table.pack(expand=True, fill="both")
 
 
+
+"""
+
+def delete_records():
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+
+    # Delete records based on a condition (example: delete all records with amount_won less than 1000)
+    c.execute("DELETE FROM leaderboard WHERE amount_won < ?", (10000000,))
+
+    # Alternatively, you can delete all records from the table
+    # c.execute("DELETE FROM leaderboard")
+
+    conn.commit()
+    conn.close()
+
+# Call the delete_records function to delete records from the leaderboard table
+delete_records()
+
+"""
 
 def register():
     username = username_entry.get()
@@ -319,28 +338,6 @@ def create_leaderboard_table():
 
 
 
-def show_rules():
-    """Opens a new window displaying the game rules."""
-    rules_window = tk.Toplevel(category_window)  # Create a new window
-    rules_window.title("Game Rules")
-    rules_window.geometry("400x300")
-    rules_window.configure(bg="black")
-
-    rules_text = """Welcome to the Game!
-    
-    1. Answer questions correctly to progress.
-    2. Incorrect answers may lead to challenges.
-    3. Minigames will appear at random intervals.
-    4. Complete challenges to continue.
-    5. Have fun and do your best!
-    """
-
-    label = tk.Label(rules_window, text=rules_text, wraplength=350, justify="left", fg="white", bg="black")
-    label.pack(pady=10, padx=10)
-
-    back_button = tk.Button(rules_window, text="Back", command=rules_window.destroy, bg="red", fg="white")
-    back_button.pack(pady=10)
-
 def show_category_selection(username):
     global category_window
     category_window = tk.Tk()
@@ -353,21 +350,20 @@ def show_category_selection(username):
     img_label.configure(bg="black")
     img_label.pack()
 
-    leaderboard_button = Button(category_window, text="Leaderboard", font=("arial",10,"bold"), 
-                                bg="green", fg="white", bd=0, activebackground="blue", 
-                                activeforeground='black', cursor="hand2", wraplength=130, 
-                                command=show_leaderboard)
+        # Create a button to show the leaderboard
+    #leaderboard_button = tk.Button(category_window, text="Leaderboard", command=show_leaderboard)
+    #eaderboard_button.pack(pady=(20, 5))
+
+        # Create the leaderboard button
+    leaderboard_button = Button(category_window, text="Leaderboard", font=("arial",10,"bold"), bg="green", fg="white", bd=0, activebackground="blue", activeforeground='black', cursor="hand2", wraplength=130, command=show_leaderboard)
     leaderboard_button.pack(pady=(20, 5))
 
-    # Create Game Rules Button
-    rules_button = Button(category_window, text="Game Rules", font=("arial",10,"bold"), 
-                          bg="blue", fg="white", bd=0, activebackground="lightblue", 
-                          activeforeground='black', cursor="hand2", wraplength=130, 
-                          command=show_rules)
-    rules_button.pack(pady=(5, 10))
 
-    categories = ["GENERAL KNOWLEDGE", "GEOGRAPHY", "HISTORY", "LITERATURE", "MUSIC", 
-                  "POP CULTURE", "SPORT", "COMPUTER SCIENCE", "RIDDLES", "SCIENCE AND TECHNOLOGY"]
+
+
+
+    categories = ["GENERAL KNOWLEDGE", "GEOGRAPHY", "HISTORY", "LITERATURE", "MUSIC", "POP CULTURE", "SPORT", "COMPUTER SCIENCE", "RIDDLES", "SCIENCE AND TECHNOLOGY"]
+
 
     def start_game_with_category(category, username):
         global category_window
@@ -376,38 +372,35 @@ def show_category_selection(username):
         if score == 15:  # Assuming the score is 15 when the user completes the category
             complete_category(category)
 
+
     category_frame = ttk.Frame(category_window)
     category_frame.pack()
    
+
     row = 0
     col = 0
     for category in categories:
-        button = Button(category_frame, text=category, font=("arial",10,"bold"), 
-                        width=20, height=2, bg="green", fg="white", bd=0, 
-                        activebackground="blue", activeforeground='black', 
-                        cursor="hand2", wraplength=130, 
-                        command=lambda cat=category: start_game_with_category(cat, username))
+        #button = ttk.Button(category_frame, text=category, command=lambda cat=category: start_game_with_category(cat))
+        button =Button(category_frame, text=category, font=("arial",10,"bold"), width=20, height=2, bg="green", fg="white",bd=0,activebackground="blue",activeforeground='black',cursor="hand2",wraplength=130,command=lambda cat=category: start_game_with_category(cat, username))
         button.grid(row=row, column=col, padx=20, pady=10)
         col += 1
         if col > 2:  # 3 columns
             col = 0
             row += 1
 
-    logout_button = Button(category_window, text="Logout", font=("arial",16,"bold"), 
-                           bg="red", fg="white", bd=0, activebackground="red", 
-                           activeforeground='white', cursor="hand2", wraplength=130, 
-                           command=logout)
+    logout_button=Button(category_window, text= "logout",font=("arial",16,"bold"),bg="red", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=logout)#width=20)
+    logout_button.place(x=20, y=20)
     logout_button.pack(pady=(80, 50)) 
 
-    exit_button = Button(category_window, text="Exit", font=("arial",16,"bold"), 
-                         bg="black", fg="white", bd=0, activebackground="red", 
-                         activeforeground='white', cursor="hand2", wraplength=130, 
-                         command=exit_game)
-    exit_button.pack(pady=10)
+
+        # Create exit button
+
+    exit_button=Button(category_window, text= "exit",font=("arial",16,"bold"),bg="black", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=exit_game)#width=20)
+    exit_button.place(x=20, y=20)
+    
+
 
     category_window.mainloop()
-
-
 
 
 def create_login_window():
@@ -466,23 +459,26 @@ def create_login_window():
     root.mainloop()
 
 
-
 def main_game(category, username):
-    # Initialize text-to-speech engine
+    import pyttsx3
+    import sqlite3
+    from tkinter import Toplevel, Label, Button, simpledialog
+    from pygame import mixer
+    
+    # Initialize pyttsx3 engine
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
-
-    # Initialize background music properly
+    
+    # Initialize mixer and play background music
     mixer.init()
-    mixer.music.load("kbc.mp3")  
-    mixer.music.play(-1)  # Start quiz music only
-
-    question_counter = 0  # Track the current question index
-    minigame_counter = 0  # Track minigame completions
-
+    mixer.music.load("kbc.mp3")
+    mixer.music.play(-1)  
+    
+    question_counter = 0  # Initialize question counter
+    
     def select(event):
-        nonlocal question_counter, minigame_counter
+        nonlocal question_counter  # Ensure we modify the outer scope variable
         callButtton.place_forget()
         progressBarA.place_forget()
         progressBarB.place_forget()
@@ -497,33 +493,12 @@ def main_game(category, username):
         b = event.widget
         value = b["text"]
         
-        if value == correct_answers[question_counter]:  # Correct answer
-            question_counter += 1  # Move to the next question
+        # Check if answer is correct
+        if value == correct_answers[question_counter]:
+            question_counter += 1  # Increment question count
             
-            # **Introduce minigame after every 3 correct answers**
-            if question_counter % 3 == 0:
-                mixer.music.stop()  # Pause quiz music
-                from minigame_bonus.main import start_game
-                minigame_score = start_game()  # Start minigame
-                
-                if minigame_score < 5:  # Fail condition
-                    mixer.music.load("kbc.mp3")  # Reload quiz music
-                    mixer.music.play(-1)  # Resume quiz music
-                    return  # Return to main quiz without progressing
-                
-                minigame_counter += 1
-                mixer.music.load("kbc.mp3")  # Reload quiz music after minigame
-                mixer.music.play(-1)  # Resume quiz music
-            
-            # **Final Question Handling**
+            # If final question is correct
             if question_counter == 15:
-                mixer.music.stop()
-                final_minigame_score = start_game()  # Final minigame before winning
-                if final_minigame_score < 10:
-                    mixer.music.load("kbc.mp3")  # Reload quiz music if failed
-                    mixer.music.play(-1)
-                    return
-                
                 def close():
                     root2.destroy()
                     root.destroy()
@@ -542,7 +517,7 @@ def main_game(category, username):
                     
                     entered_category = simpledialog.askstring("Input", "INPUT CATEGORY PLAYED AND CHECK LEADERBOARD:")
                     if entered_category:
-                        amount_won = 100000000
+                        amount_won = 100000000  # Placeholder, replace with actual score data
                         conn = sqlite3.connect("users.db")
                         c = conn.cursor()
                         c.execute("INSERT INTO leaderboard (username, category_played, amount_won) VALUES (?, ?, ?)",
@@ -550,6 +525,7 @@ def main_game(category, username):
                         conn.commit()
                         conn.close()
                 
+                mixer.music.stop()
                 mixer.music.load("kbcwon.mp3")
                 mixer.music.play()
                 
@@ -561,7 +537,7 @@ def main_game(category, username):
                 imgLabel = Label(root2, image=centerImage, bd=0, bg="black")
                 imgLabel.pack(pady=30)
                 
-                tryAgainButton = Button(root2, text="Congratulations! Enter the Category played!", command=playagain)
+                tryAgainButton = Button(root2, text="Congratulation! Enter the Category played!!", command=playagain)
                 tryAgainButton.pack()
                 
                 winLabel = Label(root2, text="You Won", font=("arial", 40, "bold"), bg='black', fg="white")
@@ -575,7 +551,16 @@ def main_game(category, username):
                 
                 root2.mainloop()
                 return
+            
+            # Every 3 questions, trigger the minigame
+            
+            if question_counter % 15 == 0:
+                mixer.music.stop()
+                start_game()  # Call minigame
+                mixer.music.play(-1)  # Resume background music after minigame
 
+                
+            
             # Load next question
             questionArea.delete(1.0, END)
             questionArea.insert(END, question[question_counter])

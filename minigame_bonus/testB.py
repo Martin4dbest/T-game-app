@@ -214,7 +214,9 @@ def end_screen():
 
 
 
-def start_game():
+def start_game(resume_quiz=None):  
+    if resume_quiz is None:
+        resume_quiz = lambda: print("No resume function provided.")  # Prevent errors
     global speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls
 
     pygame.time.set_timer(pygame.USEREVENT + 1, 500)  # Increase speed every 0.5s
@@ -241,8 +243,9 @@ def start_game():
         if pause > 0:
             pause += 1
             if pause > fallSpeed * 2:
-                end_screen()
-                return
+                pygame.mixer.music.stop()  # Ensure music stops
+                resume_quiz()  # Return to quiz instead of just ending
+                return  
 
         # Score updates with speed increase
         score = speed // 10 - 3
@@ -313,7 +316,3 @@ def start_game():
         runner.move()
         redraw_window()
 
-
-if __name__ == "__main__":
-    start_game()
-    pygame.quit()
