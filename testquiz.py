@@ -17,6 +17,8 @@ from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
 #from minigame_bonus.main import start_game
+
+
 from tkinter import Toplevel, Label, Button, simpledialog, END
 import os
 
@@ -482,23 +484,27 @@ def create_login_window():
   
 
     root.mainloop()
-import pygame
-from pygame import mixer
-import time
+
+    
+
+
 import os
 import sqlite3
+import pyttsx3
+import pygame
+from pygame import mixer
 from tkinter import *
 from tkinter import simpledialog
-import pyttsx3
+
+# Initialize Pygame mixer
+mixer.init()
 
 def main_game(category, username):
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
 
-    # Initialize mixer safely
     try:
-        mixer.init()
         if os.path.exists("kbc.mp3"):
             mixer.music.load("kbc.mp3")
             mixer.music.play(-1)
@@ -511,22 +517,20 @@ def main_game(category, username):
     final_minigame_lives = 3  
 
     def start_minigame():
-        """Handles the transition to and from the minigame"""
+        nonlocal question_counter
         if mixer.get_init():
             mixer.music.stop()
 
-        from minigame_bonus.main import start_game
-        root.withdraw()  # Hide quiz window before starting the minigame
-
         try:
+            from minigame_bonus.main import start_game
+            root.withdraw()
             minigame_score = start_game(question_counter)
         except Exception as e:
             print(f"Error during minigame: {e}")
             minigame_score = 0  
         finally:
-            root.deiconify()  # Ensure quiz window is restored no matter what
+            root.deiconify()
 
-        # Resume music after minigame
         if mixer.get_init():
             mixer.music.load("kbc.mp3")
             mixer.music.play(-1)
@@ -535,20 +539,18 @@ def main_game(category, username):
 
     def select(event):
         nonlocal question_counter, final_minigame_lives
-
+        
         b = event.widget
         value = b["text"]
 
         if value == correct_answers[question_counter]:  
             question_counter += 1  
 
-            # Transition to minigame at questions 3, 6, 9, 12
             if question_counter in [3, 6, 9, 12]:
                 print("Switching to minigame...")
                 minigame_score = start_minigame()
                 print("Returned from minigame, resuming quiz.")
 
-            # Final minigame at question 15
             if question_counter == 15:
                 if mixer.get_init():
                     mixer.music.stop()
@@ -556,7 +558,8 @@ def main_game(category, username):
                 while final_minigame_lives > 0:
                     root.withdraw()
                     try:
-                        final_minigame_score = start_game(question_counter)  
+                        from minigame_bonus.main import start_game
+                        final_minigame_score = start_game(question_counter)
                     except Exception as e:
                         print(f"Error in final minigame: {e}")
                         break
@@ -610,7 +613,6 @@ def main_game(category, username):
                 root2.mainloop()
                 return
 
-            # Update quiz screen
             questionArea.delete(1.0, END)
             questionArea.insert(END, question[question_counter])
             optionButton1.config(text=First_options[question_counter])
@@ -650,7 +652,6 @@ def main_game(category, username):
             closeButton.pack()
 
             root1.mainloop()
-
 
 
 
