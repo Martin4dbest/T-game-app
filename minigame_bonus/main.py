@@ -7,6 +7,7 @@ import math
 pygame.init()
 pygame.mixer.init()
 
+
 # Get the path of the current script (inside minigame_bonus)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 IMAGES_DIR = os.path.join(BASE_DIR, "images")  # Now correctly points to minigame_bonus/images
@@ -187,121 +188,80 @@ def redraw_window():
     win.blit(text, (10, 10))
 
     pygame.display.update()
+    
 
+def end_screen(question_number, score):
+    global obstacles, speed
+    pygame.mixer.music.stop()  # Stop background music
+    
+    if failure_sound:
+        failure_sound.play()
+        pygame.time.delay(int(failure_sound.get_length() * 1000))  # Wait for sound to complete
+    
+    pygame.quit()  # Close pygame properly
+    return score  # Return score back to quiz logic
+def start_game(question_number):
+    if not pygame.get_init():
+        pygame.init()
+    pygame.mixer.init()  # Ensure mixer is reinitialized to avoid errors
 
+    # Only start the minigame when question_number is a multiple of 3
+    if question_number % 3 != 0:
+        return 0  
 
-def end_screen():
-    global obstacles, speed, score
-    run = True
-    while run:
-        win.fill((0, 0, 0))
-        font = pygame.font.SysFont("Arial", 40)
-        text = font.render("Game Over! Press R to Restart or Q to Quit", True, (255, 255, 255))
-        win.blit(text, (WIDTH // 2 - 250, HEIGHT // 2 - 20))
-        pygame.display.update()
+    pygame.time.set_timer(pygame.USEREVENT + 1, 500)
+    pygame.time.set_timer(pygame.USEREVENT + 2, 3000)
+    pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    start_game()
-                    return
-                elif event.key == pygame.K_q:
-                    pygame.quit()
-                    sys.exit()
-
-
-
-def start_game():
-    global speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls
-
-    pygame.time.set_timer(pygame.USEREVENT + 1, 500)  # Increase speed every 0.5s
-    pygame.time.set_timer(pygame.USEREVENT + 2, 3000)  # Spawn obstacle every 3s
-    pygame.time.set_timer(pygame.USEREVENT + 3, 2000)  # Spawn falling balls every 2s
-
-    # Reset variables
+    global speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
+    
     speed = 30
     score = 0
     runner = Player(200, 313, 64, 64)
     obstacles = []
-    balls = []  # Initialize the falling balls list
+    balls = []
     pause = 0
     fallSpeed = 0
 
-    # Restart background music on game restart
+    # Ensure music is loaded before playing
     if os.path.exists(music_path):
-        pygame.mixer.music.play(-1)  # Loop indefinitely
+        pygame.mixer.music.load(music_path)  # Reload music
+        pygame.mixer.music.play(-1)
 
     run = True
     while run:
         clock.tick(speed)
 
-        if pause > 0:
-            pause += 1
-            if pause > fallSpeed * 2:
-                end_screen()
-                return
+        score = speed // 10 - 3  # Score calculation
 
-        # Score updates with speed increase
-        score = speed // 10 - 3
-
-        # Handle obstacles and balls
+        # Handle obstacles
         for obstacle in obstacles:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
-                runner.falling = True
-                if pause == 0:
-                    pause = 1
-                    fallSpeed = speed
-                    pygame.mixer.music.stop()  # Stop background music
-                    if failure_sound:
-                        failure_sound.play()  # Play failure sound
-
-            if obstacle.x < -64:
-                obstacles.remove(obstacle)
+                pygame.mixer.music.stop()
+                run = False  # Exit game loop
+                break  # Ensure immediate exit
 
         # Handle falling balls
         for ball in balls:
-            if ball.y > runner.y - 100:  # Only start falling when the ball is within range of the player
-                ball.move()  # Update ball position (falling down)
+            if ball.y > runner.y - 100:
+                ball.move()
             if ball.collide(runner.hitbox):
-                runner.falling = True
-                if pause == 0:
-                    pause = 1
-                    fallSpeed = speed
-                    pygame.mixer.music.stop()  # Stop background music
-                    if failure_sound:
-                        failure_sound.play()  # Play failure sound
+                pygame.mixer.music.stop()
+                run = False  # Exit game loop
+                break  # Ensure immediate exit
 
-            if ball.y > HEIGHT:  # Remove balls when they fall off-screen
-                balls.remove(ball)
-
-        # Event Handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             if event.type == pygame.USEREVENT + 1:
                 speed += 1
-
             if event.type == pygame.USEREVENT + 2:
-                if random.choice([True, False]):
-                    obstacles.append(Saw(810, 310))
-                else:
-                    obstacles.append(Spike(810, 0))
-
+                obstacles.append(Saw(810, 310) if random.choice([True, False]) else Spike(810, 0))
             if event.type == pygame.USEREVENT + 3:
-                # Randomly spawn falling balls
-                ball_y = random.randint(50, HEIGHT - 50)  # Random y position for the ball to spawn from above
-                if random.choice([True, False]):
-                    balls.append(Ball(810, -100, random.randint(20, 40), (0, 255, 0)))  # Green ball above the screen
-                else:
-                    balls.append(Ball(810, -100, random.randint(20, 40), (255, 255, 0)))  # Yellow ball above the screen
+                balls.append(Ball(810, -100, random.randint(20, 40), (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
 
-        # Player controls
         keys = pygame.key.get_pressed()
         if not runner.falling:
             if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
@@ -311,9 +271,8 @@ def start_game():
                 runner.sliding = True
 
         runner.move()
-        redraw_window()
+        redraw_window()  # Update screen
+
+    return end_screen(question_number, score)  # Play failure sound before returning to quiz
 
 
-if __name__ == "__main__":
-    start_game()
-    pygame.quit()
