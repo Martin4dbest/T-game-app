@@ -16,6 +16,7 @@ from tkinter import Tk, Entry, Label, Button, messagebox
 from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
+from threading import Thread
 #from minigame_bonus.main import start_game
 
 
@@ -486,8 +487,6 @@ def create_login_window():
     root.mainloop()
 
     
-
-
 import os
 import sqlite3
 import pyttsx3
@@ -495,6 +494,9 @@ import pygame
 from pygame import mixer
 from tkinter import *
 from tkinter import simpledialog
+
+
+pygame.init() 
 
 # Initialize Pygame mixer
 mixer.init()
@@ -504,81 +506,76 @@ def main_game(category, username):
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
 
-    try:
-        if os.path.exists("kbc.mp3"):
-            mixer.music.load("kbc.mp3")
-            mixer.music.play(-1)
-        else:
-            print("Warning: kbc.mp3 file not found!")
-    except pygame.error as e:
-        print(f"Error initializing mixer: {e}")
+    quiz_music = "kbc.mp3"
+    if os.path.exists(quiz_music):
+        mixer.music.load(quiz_music)
+        mixer.music.play(-1)
 
     question_counter = 0  
     final_minigame_lives = 3  
 
-    def start_minigame():
-        nonlocal question_counter
+    def resume_quiz():
+        """Resumes quiz background music after minigame"""
         if mixer.get_init():
             mixer.music.stop()
-
-        try:
-            from minigame_bonus.main import start_game
-            root.withdraw()
-            minigame_score = start_game(question_counter)
-        except Exception as e:
-            print(f"Error during minigame: {e}")
-            minigame_score = 0  
-        finally:
-            root.deiconify()
-
-        if mixer.get_init():
-            mixer.music.load("kbc.mp3")
-            mixer.music.play(-1)
-
-        return minigame_score
+            if os.path.exists(quiz_music):
+                mixer.music.load(quiz_music)
+                mixer.music.play(-1)
+    
+    import pygame
+    pygame.init() 
 
     def select(event):
+        """Handles answer selection, minigame transitions, and quiz progression"""
         nonlocal question_counter, final_minigame_lives
-        
+
         b = event.widget
         value = b["text"]
+        if question_counter >= len(correct_answers): 
+            return 
+            print(f"⚠️ Error: question_counter ({question_counter}) exceeded question limit!")
+    
 
         if value == correct_answers[question_counter]:  
             question_counter += 1  
 
+            # 🎮 Switch to minigame at checkpoints
             if question_counter in [3, 6, 9, 12]:
-                print("Switching to minigame...")
-                minigame_score = start_minigame()
-                print("Returned from minigame, resuming quiz.")
+                root.withdraw()  # Hide quiz window
+                import pygame
+                if not pygame.get_init(): 
+                    pygame.init()
+                from minigame_bonus.main import start_game
+                start_game(question_counter) 
+                
+                root.deiconify()
+                root.after(1000, resume_quiz)  # Resume quiz music
 
-            if question_counter == 15:
+            # 🎉 Handle quiz completion
+            if question_counter == 15:  
                 if mixer.get_init():
                     mixer.music.stop()
                 
+                # 🏆 Final minigame for winning prize
                 while final_minigame_lives > 0:
                     root.withdraw()
                     try:
                         from minigame_bonus.main import start_game
                         final_minigame_score = start_game(question_counter)
                     except Exception as e:
-                        print(f"Error in final minigame: {e}")
                         break
                     finally:
                         root.deiconify()
-
+                    
                     if final_minigame_score >= 20:
                         break  
-
                     final_minigame_lives -= 1
-                    print(f"Minigame failed. Lives left: {final_minigame_lives}")
 
                 if final_minigame_lives == 0:
-                    print("Final minigame failed. Returning to quiz.")
-                    if mixer.get_init():
-                        mixer.music.load("kbc.mp3")
-                        mixer.music.play(-1)
+                    resume_quiz()
                     return
                 
+                # 🎊 Winning screen
                 def close():
                     root2.destroy()
                 
@@ -605,14 +602,13 @@ def main_game(category, username):
                 winLabel = Label(root2, text="You Won!", font=("arial", 30, "bold"), bg='black', fg="white")
                 winLabel.pack(pady=20)
                 
-                playagainButton = Button(root2, text="Play Again", command=playagain)
-                playagainButton.pack()
-                closeButton = Button(root2, text="Close", command=close)
-                closeButton.pack()
+                Button(root2, text="Play Again", command=playagain).pack()
+                Button(root2, text="Close", command=close).pack()
                 
                 root2.mainloop()
                 return
-
+            
+            # ✅ Update the UI with the next question
             questionArea.delete(1.0, END)
             questionArea.insert(END, question[question_counter])
             optionButton1.config(text=First_options[question_counter])
@@ -620,9 +616,8 @@ def main_game(category, username):
             optionButton3.config(text=Third_options[question_counter])
             optionButton4.config(text=Fourth_options[question_counter])
             amountLabel.configure(image=amountImages[question_counter])
+        
         else:
-            print("Incorrect answer! Game over.")
-
             def close():
                 root1.destroy()
 
@@ -635,8 +630,7 @@ def main_game(category, username):
                 optionButton3.config(text=Third_options[0])
                 optionButton4.config(text=Fourth_options[0])
                 amountLabel.config(image=amountImages[0])
-                mixer.music.load("kbc.mp3")
-                mixer.music.play(-1)
+                resume_quiz()
 
             root1 = Toplevel()
             root1.config(bg="black")
@@ -646,12 +640,14 @@ def main_game(category, username):
             loseLabel = Label(root1, text="You Lost!", font=("arial", 30, "bold"), bg='black', fg="white")
             loseLabel.pack(pady=20)
 
-            tryagainButton = Button(root1, text="Try Again", command=tryagain)
-            tryagainButton.pack()
-            closeButton = Button(root1, text="Close", command=close)
-            closeButton.pack()
+            Button(root1, text="Try Again", command=tryagain).pack()
+            Button(root1, text="Close", command=close).pack()
 
             root1.mainloop()
+
+
+
+
 
 
 

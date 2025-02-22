@@ -150,8 +150,18 @@ balls = [
     Ball(400, 100, 30, (0, 255, 0)),  # Green ball
     Ball(600, 150, 40, (255, 255, 0)),  # Yellow ball
 ]
+
+import pygame
+import sys
+import os
+import random
+
 def redraw_window():
-    global bgX, bgX2, current_bg_index
+    global bgX, bgX2, current_bg_index, win
+
+    if pygame.display.get_surface() is None:
+        print("Warning: Attempting to draw on a closed display.")
+        return  # Prevent blitting on a closed surface
 
     # Change background every 3-score interval
     current_bg_index = (score // 3) % len(backgrounds)
@@ -188,33 +198,44 @@ def redraw_window():
     win.blit(text, (10, 10))
 
     pygame.display.update()
-    
+
 
 def end_screen(question_number, score):
     global obstacles, speed
+
     pygame.mixer.music.stop()  # Stop background music
-    
+
     if failure_sound:
         failure_sound.play()
         pygame.time.delay(int(failure_sound.get_length() * 1000))  # Wait for sound to complete
-    
-    pygame.quit()  # Close pygame properly
+
     return score  # Return score back to quiz logic
+
+
 def start_game(question_number):
+    global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
+
     if not pygame.get_init():
         pygame.init()
-    pygame.mixer.init()  # Ensure mixer is reinitialized to avoid errors
+    
+    pygame.mixer.init()  # Ensure mixer is initialized
 
     # Only start the minigame when question_number is a multiple of 3
     if question_number % 3 != 0:
         return 0  
 
+    # Ensure display is initialized
+    if pygame.display.get_surface() is None:
+        win = pygame.display.set_mode((800, 600))
+    else:
+        win = pygame.display.get_surface()
+
+    pygame.display.set_caption(f"Minigame - Question {question_number}")
+
     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
     pygame.time.set_timer(pygame.USEREVENT + 2, 3000)
     pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
 
-    global speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
-    
     speed = 30
     score = 0
     runner = Player(200, 313, 64, 64)
@@ -222,45 +243,45 @@ def start_game(question_number):
     balls = []
     pause = 0
     fallSpeed = 0
+    clock = pygame.time.Clock()  # Initialize clock
 
     # Ensure music is loaded before playing
     if os.path.exists(music_path):
-        pygame.mixer.music.load(music_path)  # Reload music
+        pygame.mixer.music.load(music_path)
         pygame.mixer.music.play(-1)
 
     run = True
     while run:
         clock.tick(speed)
-
         score = speed // 10 - 3  # Score calculation
 
         # Handle obstacles
-        for obstacle in obstacles:
+        for obstacle in obstacles[:]:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
                 pygame.mixer.music.stop()
-                run = False  # Exit game loop
-                break  # Ensure immediate exit
+                run = False
+                break
 
         # Handle falling balls
-        for ball in balls:
+        for ball in balls[:]:
             if ball.y > runner.y - 100:
                 ball.move()
             if ball.collide(runner.hitbox):
                 pygame.mixer.music.stop()
-                run = False  # Exit game loop
-                break  # Ensure immediate exit
+                run = False
+                break
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                run = False  # Set flag instead of quitting Pygame immediately
             if event.type == pygame.USEREVENT + 1:
                 speed += 1
             if event.type == pygame.USEREVENT + 2:
                 obstacles.append(Saw(810, 310) if random.choice([True, False]) else Spike(810, 0))
             if event.type == pygame.USEREVENT + 3:
-                balls.append(Ball(810, -100, random.randint(20, 40), (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
+                balls.append(Ball(810, -100, random.randint(20, 40), 
+                                  (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
 
         keys = pygame.key.get_pressed()
         if not runner.falling:
@@ -271,8 +292,11 @@ def start_game(question_number):
                 runner.sliding = True
 
         runner.move()
-        redraw_window()  # Update screen
+        
+        # Ensure the display is still active before updating
+        if pygame.display.get_surface():
+            redraw_window()
+
+    pygame.mixer.music.stop()
 
     return end_screen(question_number, score)  # Play failure sound before returning to quiz
-
-
