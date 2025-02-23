@@ -96,19 +96,26 @@ def authenticate_user(username, password):
     else:
         return None
 
+
+
 def create_leaderboard_table():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
     c.execute('''DROP TABLE IF EXISTS leaderboard''')  # Drop the existing table if it exists
-    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard
-                 (username TEXT , amount_won REAL, category_played TEXT)''')  # Recreate the table with the updated schema
+    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
+                    username TEXT PRIMARY KEY, 
+                    amount_won REAL DEFAULT 0, 
+                    category_played TEXT, 
+                    minigame_score INTEGER DEFAULT 0, 
+                    time_spent REAL DEFAULT 0, 
+                    lives_used INTEGER DEFAULT 0
+                )''')  # Recreate the table with the updated schema
     conn.commit()
     conn.close()
 
-
 create_leaderboard_table()
 
-def update_leaderboard(username, amount_won, category_played):
+def update_leaderboard(username, amount_won, category_played, minigame_score=0, time_spent=0, lives_used=0):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
 
@@ -117,13 +124,26 @@ def update_leaderboard(username, amount_won, category_played):
     existing_user = c.fetchone()
 
     if existing_user:
-        # If the username exists, update the amount won
+        # If the username exists, update the values
         updated_amount_won = existing_user[1] + amount_won
-        c.execute("UPDATE leaderboard SET amount_won = ? WHERE username = ?", (updated_amount_won, username))
+        updated_minigame_score = existing_user[3] + minigame_score
+        updated_time_spent = existing_user[4] + time_spent
+        updated_lives_used = existing_user[5] + lives_used
+
+        c.execute('''UPDATE leaderboard 
+                     SET amount_won = ?, 
+                         minigame_score = ?, 
+                         time_spent = ?, 
+                         lives_used = ?, 
+                         category_played = ? 
+                     WHERE username = ?''', 
+                  (updated_amount_won, updated_minigame_score, updated_time_spent, updated_lives_used, category_played, username))
     else:
-        # If the username doesn't exist, insert a new row
-        #c.execute("INSERT INTO leaderboard (username, amount_won, category_played) VALUES (?, ?, ?)", (username,category_played, amount_won, ))
-        c.execute("INSERT INTO leaderboard (username, amount_won, category_played) VALUES (?, ?, ?)", (username, amount_won, category_played))
+        # Insert a new row if username does not exist
+        c.execute('''INSERT INTO leaderboard 
+                     (username, amount_won, category_played, minigame_score, time_spent, lives_used) 
+                     VALUES (?, ?, ?, ?, ?, ?)''', 
+                  (username, amount_won, category_played, minigame_score, time_spent, lives_used))
 
     conn.commit()
     conn.close()
@@ -131,52 +151,58 @@ def update_leaderboard(username, amount_won, category_played):
 
 
 
+import sqlite3
+import tkinter as tk
+from tkinter import ttk
 
-def complete_category(username, category_played):
-    # Call this function when a user completes a category
-    update_leaderboard(username, 100000000, category_played)  # Update the leaderboard for the logged-in user
-
-
+def complete_category(username, category_played, time_spent=5, lives_used=1):
+    """Call this function when a user completes a category"""
+    update_leaderboard(username, 100000000, category_played, minigame_score=10, time_spent=time_spent, lives_used=lives_used)
 
 def show_leaderboard():
     leaderboard_window = tk.Toplevel()
     leaderboard_window.title("Leaderboard")
-    leaderboard_window.geometry("1430x1430")
+    leaderboard_window.geometry("1200x600")
 
-    
-    #frame = tk.Frame(leaderboard_window, bg="green")
-    #frame.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-        # Create a frame with a colored background
+    # Create a frame with a colored background
     background_frame = tk.Frame(leaderboard_window, bg="green")
     background_frame.pack(fill="both", expand=True)
 
     # Create a frame to contain the leaderboard table
-    frame = tk.Frame(background_frame, bg="lightyellow", width=1000, height=800)
+    frame = tk.Frame(background_frame, bg="lightyellow", width=1100, height=500)
     frame.place(relx=0.5, rely=0.5, anchor="center")
-
-    frame.config(width=1200, height=900) 
-
 
     # Retrieve leaderboard data from the database
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute("SELECT username, category_played, amount_won FROM leaderboard ORDER BY amount_won DESC")
+    c.execute("SELECT username, category_played, amount_won, minigame_score, time_spent, lives_used FROM leaderboard ORDER BY amount_won DESC")
     leaderboard_data = c.fetchall()
     conn.close()
 
     # Create a table to display leaderboard data
-    table = ttk.Treeview(frame, columns=("Username", "Category Played", "Amount Won"))
+    table = ttk.Treeview(frame, columns=("Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent", "Lives Used"))
+    
     table.heading("#0", text="Rank")
-    table.heading("Username", text="THE CHAMPIONS")
+    table.heading("Username", text="The Champions")
+    table.heading("Category Played", text="Category Played")
     table.heading("Amount Won", text="Amount Won")
-    table.heading("Category Played", text="Category Played")  # Fixed typo here
-   
-    for i, (username, category_played, amount_won) in enumerate(leaderboard_data, start=1):
-        table.insert("", "end", text=str(i), values=(username, category_played, amount_won))
+    table.heading("Minigame Score", text="Minigame Score")
+    table.heading("Time Spent", text="Time Spent (secondss)")
+    table.heading("Lives Used", text="Lives Used")
+
+    table.column("#0", width=50, anchor="center")  # Rank column
+    table.column("Username", width=200, anchor="center")
+    table.column("Category Played", width=200, anchor="center")
+    table.column("Amount Won", width=150, anchor="center")
+    table.column("Minigame Score", width=150, anchor="center")
+    table.column("Time Spent", width=150, anchor="center")
+    table.column("Lives Used", width=150, anchor="center")
+
+    # Insert leaderboard data
+    for i, (username, category_played, amount_won, minigame_score, time_spent, lives_used) in enumerate(leaderboard_data, start=1):
+        table.insert("", "end", text=str(i), values=(username, category_played, amount_won, minigame_score, time_spent, lives_used))
 
     table.pack(expand=True, fill="both")
-
 
 
 def register():
@@ -501,6 +527,18 @@ pygame.init()
 # Initialize Pygame mixer
 mixer.init()
 
+import os
+import sqlite3
+import pyttsx3
+import pygame
+from pygame import mixer
+from tkinter import *
+from tkinter import simpledialog
+import time
+
+# Initialize Pygame mixer
+mixer.init()
+
 def main_game(category, username):
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
@@ -510,6 +548,8 @@ def main_game(category, username):
     if os.path.exists(quiz_music):
         mixer.music.load(quiz_music)
         mixer.music.play(-1)
+    else:
+        print("Warning: kbc.mp3 file not found!")
 
     question_counter = 0  
     final_minigame_lives = 3  
@@ -521,9 +561,6 @@ def main_game(category, username):
             if os.path.exists(quiz_music):
                 mixer.music.load(quiz_music)
                 mixer.music.play(-1)
-    
-    import pygame
-    pygame.init() 
 
     def select(event):
         """Handles answer selection, minigame transitions, and quiz progression"""
@@ -534,7 +571,6 @@ def main_game(category, username):
         if question_counter >= len(correct_answers): 
             return 
             print(f"⚠️ Error: question_counter ({question_counter}) exceeded question limit!")
-    
 
         if value == correct_answers[question_counter]:  
             question_counter += 1  
@@ -542,7 +578,6 @@ def main_game(category, username):
             # 🎮 Switch to minigame at checkpoints
             if question_counter in [3, 6, 9, 12]:
                 root.withdraw()  # Hide quiz window
-                import pygame
                 if not pygame.get_init(): 
                     pygame.init()
                 from minigame_bonus.main import start_game
@@ -557,6 +592,8 @@ def main_game(category, username):
                     mixer.music.stop()
                 
                 # 🏆 Final minigame for winning prize
+                start_time = time.time()  # Track minigame start time
+
                 while final_minigame_lives > 0:
                     root.withdraw()
                     try:
@@ -566,19 +603,33 @@ def main_game(category, username):
                         break
                     finally:
                         root.deiconify()
-                    
-                    if final_minigame_score >= 20:
+
+                    if final_minigame_score >= 5:
                         break  
                     final_minigame_lives -= 1
+
+                end_time = time.time()  # Track minigame end time
+                time_spent = round(end_time - start_time, 2)  # Time spent in seconds
+                lives_used = 3 - final_minigame_lives  # Calculate lives used
 
                 if final_minigame_lives == 0:
                     resume_quiz()
                     return
                 
+                # 🎊 Record player stats in the leaderboard
+                conn = sqlite3.connect("users.db")
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO leaderboard (username, category_played, amount_won, minigame_score, time_spent, lives_used)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (username, category, 100000000, final_minigame_score, time_spent, lives_used))
+                conn.commit()
+                conn.close()
+
                 # 🎊 Winning screen
                 def close():
                     root2.destroy()
-                
+
                 def playagain():
                     root2.destroy()
                     entered_category = simpledialog.askstring("Input", "Enter category and check leaderboard:")
@@ -589,22 +640,26 @@ def main_game(category, username):
                                   (username, entered_category, 100000000))
                         conn.commit()
                         conn.close()
-                
+
                 if mixer.get_init():
                     mixer.music.load("kbcwon.mp3")
                     mixer.music.play()
-                
+
                 root2 = Toplevel()
                 root2.config(bg="black")
                 root2.geometry("500x400")
                 root2.title("You Won!")
-                
+
                 winLabel = Label(root2, text="You Won!", font=("arial", 30, "bold"), bg='black', fg="white")
                 winLabel.pack(pady=20)
-                
+
+                Label(root2, text=f"Score: {final_minigame_score}", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+                Label(root2, text=f"Time Spent: {time_spent} sec", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+                Label(root2, text=f"Lives Used: {lives_used}", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+
                 Button(root2, text="Play Again", command=playagain).pack()
                 Button(root2, text="Close", command=close).pack()
-                
+
                 root2.mainloop()
                 return
             
@@ -644,7 +699,6 @@ def main_game(category, username):
             Button(root1, text="Close", command=close).pack()
 
             root1.mainloop()
-
 
 
 
