@@ -103,13 +103,14 @@ def create_leaderboard_table():
     c = conn.cursor()
     c.execute('''DROP TABLE IF EXISTS leaderboard''')  # Drop the existing table if it exists
     c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
-                    username TEXT PRIMARY KEY, 
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT, 
                     amount_won REAL DEFAULT 0, 
                     category_played TEXT, 
                     minigame_score INTEGER DEFAULT 0, 
                     time_spent REAL DEFAULT 0, 
                     lives_used INTEGER DEFAULT 0
-                )''')  # Recreate the table with the updated schema
+                )''')  # Recreate the table with an auto-incrementing ID
     conn.commit()
     conn.close()
 
@@ -119,31 +120,11 @@ def update_leaderboard(username, amount_won, category_played, minigame_score=0, 
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
 
-    # Check if the username already exists in the leaderboard table
-    c.execute("SELECT * FROM leaderboard WHERE username = ?", (username,))
-    existing_user = c.fetchone()
-
-    if existing_user:
-        # If the username exists, update the values
-        updated_amount_won = existing_user[1] + amount_won
-        updated_minigame_score = existing_user[3] + minigame_score
-        updated_time_spent = existing_user[4] + time_spent
-        updated_lives_used = existing_user[5] + lives_used
-
-        c.execute('''UPDATE leaderboard 
-                     SET amount_won = ?, 
-                         minigame_score = ?, 
-                         time_spent = ?, 
-                         lives_used = ?, 
-                         category_played = ? 
-                     WHERE username = ?''', 
-                  (updated_amount_won, updated_minigame_score, updated_time_spent, updated_lives_used, category_played, username))
-    else:
-        # Insert a new row if username does not exist
-        c.execute('''INSERT INTO leaderboard 
-                     (username, amount_won, category_played, minigame_score, time_spent, lives_used) 
-                     VALUES (?, ?, ?, ?, ?, ?)''', 
-                  (username, amount_won, category_played, minigame_score, time_spent, lives_used))
+    # Always insert a new record, allowing duplicate usernames
+    c.execute('''INSERT INTO leaderboard 
+                 (username, amount_won, category_played, minigame_score, time_spent, lives_used) 
+                 VALUES (?, ?, ?, ?, ?, ?)''', 
+              (username, amount_won, category_played, minigame_score, time_spent, lives_used))
 
     conn.commit()
     conn.close()
@@ -187,7 +168,7 @@ def show_leaderboard():
     table.heading("Category Played", text="Category Played")
     table.heading("Amount Won", text="Amount Won")
     table.heading("Minigame Score", text="Minigame Score")
-    table.heading("Time Spent", text="Time Spent (secondss)")
+    table.heading("Time Spent", text="Time Spent (seconds)")
     table.heading("Lives Used", text="Lives Used")
 
     table.column("#0", width=50, anchor="center")  # Rank column
