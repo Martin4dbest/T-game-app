@@ -310,13 +310,7 @@ def register_user(username, password, avatar_path=None):
 category_window = None
 
 
-def logout():
-    global category_window
-    if category_window:
-        category_window.destroy()  # Destroy the category selection window
-    create_login_window()  # Show the login window again
 
-    
 def logout():
     global category_window
     if category_window:
