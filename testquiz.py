@@ -17,7 +17,9 @@ from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
 from threading import Thread
-from PIL import Image, ImageTk
+
+from PIL import Image as PilImage, ImageTk
+
 #from minigame_bonus.main import start_game
 
 
@@ -149,90 +151,75 @@ def complete_category(username, category_played, time_spent=5, lives_used=1):
     update_leaderboard(username, 100000000, category_played, minigame_score=10, time_spent=time_spent, lives_used=lives_used)
 
 
-from PIL import Image, ImageTk
 
-import tkinter as tk
-from tkinter import ttk
-import sqlite3
+
 
 import os
 import sqlite3
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image as PilImage, ImageTk
 
 def show_leaderboard():
-    """Fetches leaderboard data and displays user avatars."""
     leaderboard_window = tk.Toplevel()
     leaderboard_window.title("Leaderboard")
     leaderboard_window.geometry("1200x600")
 
-    # Create a frame with a professional dark blue background
     background_frame = tk.Frame(leaderboard_window, bg="#1a1a2e")
     background_frame.pack(fill="both", expand=True)
 
-    # Create a frame for the leaderboard table
     frame = tk.Frame(background_frame, bg="white", width=1100, height=500, relief="ridge", bd=5)
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Retrieve leaderboard data (including avatar paths)
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
     c.execute("SELECT avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used FROM leaderboard ORDER BY amount_won DESC")
     leaderboard_data = c.fetchall()
     conn.close()
 
-    # Create a Treeview table
-    columns = ("Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent", "Lives Used")
+    columns = ("Avatar", "Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent(s)", "Lives Used")
     table = ttk.Treeview(frame, columns=columns, show="headings", height=10)
 
-    # Style the Treeview
     style = ttk.Style()
     style.configure("Treeview", font=("Helvetica", 12), rowheight=50)
     style.configure("Treeview.Heading", font=("Helvetica", 14, "bold"), foreground="gold")
 
-    # Define column headings
-    table.heading("Username", text="Username")
-    table.heading("Category Played", text="Category Played")
-    table.heading("Amount Won", text="Amount Won")
-    table.heading("Minigame Score", text="Minigame Score")
-    table.heading("Time Spent", text="Time Spent (sec)")
-    table.heading("Lives Used", text="Lives Used")
+    for col in columns:
+        table.heading(col, text=col)
 
-    # Set column widths and alignment
-    table.column("Username", width=200, anchor="center")
-    table.column("Category Played", width=200, anchor="center")
-    table.column("Amount Won", width=150, anchor="center")
-    table.column("Minigame Score", width=150, anchor="center")
-    table.column("Time Spent", width=150, anchor="center")
-    table.column("Lives Used", width=150, anchor="center")
+    column_widths = [100, 150, 200, 150, 150, 150, 150]
+    for col, width in zip(columns, column_widths):
+        table.column(col, width=width, anchor="center")
 
-    # Create a frame for avatars
-    avatar_frame = tk.Frame(frame, bg="white")
-    avatar_frame.place(x=20, y=80)
+    default_avatar_path = os.path.join("avatars", "vac.png")
+    avatars_frame = tk.Frame(frame, bg="white")
+    avatars_frame.place(x=10, y=50)
+    avatars_cache = {}
 
-    avatars = []  # Keep references to prevent garbage collection
-
-    # Insert leaderboard data (and display avatars)
     for i, (avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used) in enumerate(leaderboard_data, start=1):
-        table.insert("", "end", values=(username, category_played, amount_won, minigame_score, time_spent, lives_used))
+        table.insert("", "end", values=("", username, category_played, amount_won, minigame_score, time_spent, lives_used))
 
-        # Load the avatar image (fallback to default image if not found)
-        if avatar_path and os.path.exists(avatar_path):
-            avatar_img = tk.PhotoImage(file=avatar_path)
-        else:
-            avatar_img = tk.PhotoImage(file="avatars/avarta.png")  # Default image
+        if avatar_path and not avatar_path.startswith("avatars/"):
+            avatar_path = os.path.join("avatars", avatar_path)
+        
+        if not avatar_path or not os.path.exists(avatar_path):
+            avatar_path = default_avatar_path
 
-        avatars.append(avatar_img)  # Keep reference
-        avatar_label = tk.Label(avatar_frame, image=avatar_img, bg="white")
-        avatar_label.image = avatar_img  # Prevent garbage collection
-        avatar_label.grid(row=i, column=0, padx=5, pady=2)
+        try:
+            image = PilImage.open(avatar_path)
+            image = image.resize((50, 50))
+            avatar_img = ImageTk.PhotoImage(image)
+            avatars_cache[username] = avatar_img
 
-    # Place the table in the frame
+            avatar_label = tk.Label(avatars_frame, image=avatar_img, bg="white")
+            avatar_label.image = avatar_img
+            avatar_label.grid(row=i, column=0, padx=5, pady=2)
+        except Exception as e:
+            print(f"Error loading avatar for {username}: {e}")
+
     table.pack(expand=True, fill="both", padx=20, pady=20)
-
     leaderboard_window.mainloop()
 
-# Ensure the avatars directory exists at the start
 if not os.path.exists("avatars"):
     os.makedirs("avatars")
 
@@ -276,7 +263,7 @@ def register():
             shutil.copy(file_path, new_avatar_path)
     else:
         # If no image is uploaded, set a default avatar
-        default_avatar = os.path.join(avatar_dir, "avartar.png")
+        default_avatar = os.path.join(avatar_dir, "vac.png")
         if not os.path.exists(default_avatar):
             messagebox.showwarning("Warning", "Default avatar not found. Please upload an image.")
             return
@@ -305,7 +292,7 @@ def register_user(username, password, avatar_path=None):
         avatar_path = "avatars/default_avatar.png"
     else:
         # Save the uploaded avatar with a unique name
-        new_avatar_path = f"avatars/{username}_avatar.png"
+        new_avatar_path = f"avatars/{username}.png"
         os.rename(avatar_path, new_avatar_path)
         avatar_path = new_avatar_path  # Update path to store in DB
 
