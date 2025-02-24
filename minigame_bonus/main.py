@@ -66,15 +66,24 @@ obstacles = []
 
 
 
+# (Previous code remains unchanged until the Player class)# (Previous code remains unchanged until the Player class)
+# (Previous code remains unchanged until the Player class)
+
 class Player:
     def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.jumping = False
-        self.sliding = False
-        self.falling = False
+        self.jump_speed = 15  # Speed of jumping
+        self.fall_speed = 15  # Speed of falling
+        self.slide_speed = 10  # Speed of sliding
+        self.ground_level = 313  # Ground level for the player
+        self.max_jump_height = 100  # Maximum height the player can jump (increased for tall obstacles)
+        self.is_on_ground = True  # Track if the player is on the ground
+        self.is_sliding = False  # Track if the player is sliding
+        self.falling = False  # Track if the player is falling
+        self.jumping = False  # Track if the player is jumping
 
         # Load and scale the player image using absolute path
         player_image_path = os.path.join(IMAGES_DIR, "myrunner.png")
@@ -89,16 +98,52 @@ class Player:
         self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def move(self):
-        if self.jumping:
-            self.y -= 10
-            if self.y <= 200:
-                self.jumping = False
-        elif self.y < 313:
-            self.y += 10
-        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+        keys = pygame.key.get_pressed()
+
+        # Jumping with up arrow
+        if keys[pygame.K_UP]:  # Allow jumping anytime (not just on the ground)
+            self.y -= self.jump_speed
+            if self.y <= self.max_jump_height:  # Stop jumping at max height
+                self.y = self.max_jump_height
+            self.falling = False  # Reset falling state when jumping
+            self.jumping = True  # Set jumping state when moving up
+
+        # Falling with down arrow
+        if keys[pygame.K_DOWN]:  # Allow falling anytime
+            self.y += self.fall_speed
+            self.falling = True  # Set falling state when moving down
+            self.jumping = False  # Reset jumping state when falling
+
+        # Sliding with forward arrow (right arrow key)
+        if keys[pygame.K_RIGHT] and self.is_on_ground:  # Only slide if on the ground
+            self.is_sliding = True
+        else:
+            self.is_sliding = False
+
+        # Ensure the player doesn't go above the maximum jump height
+        if self.y < self.max_jump_height:
+            self.y = self.max_jump_height
+            self.jumping = False  # Reset jumping state when at max height
+
+        # Ensure the player doesn't go below the screen bounds
+        if self.y > HEIGHT - self.height:  # Prevent player from going below the screen
+            self.y = HEIGHT - self.height
+            self.falling = False  # Reset falling state when at the bottom
+
+        # Update hitbox position
+        if self.is_sliding:
+            self.hitbox = pygame.Rect(self.x, self.y + self.height // 2, self.width, self.height // 2)
+        else:
+            self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def draw(self, win):
-        win.blit(self.image, (self.x, self.y))  # Draw the player image
+        if self.is_sliding:
+            # Draw a smaller hitbox for sliding
+            win.blit(pygame.transform.scale(self.image, (self.width, self.height // 2)), (self.x, self.y + self.height // 2))
+        else:
+            win.blit(self.image, (self.x, self.y))  # Draw the player image
+
+
 
 class Obstacle:
     def __init__(self, x, y, width, height):
@@ -121,15 +166,82 @@ class Obstacle:
 class Saw(Obstacle):
     def __init__(self, x, y):
         super().__init__(x, y, 64, 64)
+        self.color = (255, 0, 0)  # Red color for saw
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
 
 class Spike(Obstacle):
     def __init__(self, x, y):
         super().__init__(x, y, 48, 310)
+        self.color = (0, 0, 0)  # Black color for spike
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
+
+class HotWater(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 100, 20)
+        self.color = (0, 0, 255)  # Blue color for hot water
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
+
+class Block(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 100, 20)
+        self.color = (255, 165, 0)  # Orange color for block
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
+
+class Triangle(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 50, 50)
+        self.color = (255, 0, 255)  # Purple color for triangle
+
+    def draw(self, win):
+        pygame.draw.polygon(win, self.color, [(self.x, self.y + self.height), (self.x + self.width / 2, self.y), (self.x + self.width, self.y + self.height)])
+
+class Star(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 50, 50)
+        self.color = (255, 255, 0)  # Yellow color for star
+
+    def draw(self, win):
+        pygame.draw.polygon(win, self.color, [
+            (self.x + 25, self.y),
+            (self.x + 30, self.y + 20),
+            (self.x + 50, self.y + 20),
+            (self.x + 35, self.y + 35),
+            (self.x + 40, self.y + 50),
+            (self.x + 25, self.y + 40),
+            (self.x + 10, self.y + 50),
+            (self.x + 15, self.y + 35),
+            (self.x, self.y + 20),
+            (self.x + 20, self.y + 20)
+        ])
+
+class MovingBlock(Obstacle):
+    def __init__(self, x, y, direction):
+        super().__init__(x, y, 100, 20)
+        self.color = (0, 255, 0)  # Green color for moving block
+        self.direction = direction  # "up" or "down"
+
+    def move(self):
+        self.x -= (speed / 30) * 1.4  # Move left
+        if self.direction == "up":
+            self.y -= 5  # Move up
+        elif self.direction == "down":
+            self.y += 5  # Move down
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
 
 
 class Ball(Obstacle):
     def __init__(self, x, y, radius, color):
-        # Call the constructor of the parent class (Obstacle)
         super().__init__(x, y, radius * 2, radius * 2)  # Use diameter for width and height
         self.radius = radius
         self.color = color
@@ -144,12 +256,102 @@ class Ball(Obstacle):
     def collide(self, player_hitbox):
         return self.hitbox.colliderect(player_hitbox)
 
-
 # Create falling balls
 balls = [
     Ball(400, 100, 30, (0, 255, 0)),  # Green ball
     Ball(600, 150, 40, (255, 255, 0)),  # Yellow ball
 ]
+
+# (Previous code remains unchanged until the Obstacle class)
+
+# (Previous code remains unchanged until the Obstacle class)
+
+class RectangularSpike(Obstacle):
+    def __init__(self, x, y):
+        super().__init__(x, y, 50, 20)  # Width = 50, Height = 20
+        self.color = (255, 0, 0)  # Red color for rectangular spike
+        self.speed = 5  # Speed at which the spike moves upward
+
+    def move(self):
+        self.y -= self.speed  # Move upward
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.hitbox)
+
+# Add rectangular spikes moving upward from below
+obstacles = [
+    Saw(800, 313),
+    Spike(1000, 313),
+    HotWater(1200, 500),  # Hot water obstacle
+    Block(1400, 200),  # Block obstacle
+    Triangle(1600, 313),  # Triangle obstacle
+    Star(1800, 313),  # Star obstacle
+    MovingBlock(2000, 500, "up"),  # Moving block going up
+    MovingBlock(2200, 200, "down"),  # Moving block going down
+    Saw(2400, 313),  # Another saw
+    Spike(2600, 313),  # Another spike
+    HotWater(2800, 500),  # Another hot water
+    Block(3000, 200),  # Another block
+    Triangle(3200, 313),  # Another triangle
+    Star(3400, 313),  # Another star
+    MovingBlock(3600, 500, "up"),  # Another moving block going up
+    MovingBlock(3800, 200, "down"),  # Another moving block going down
+    Block(4000, HEIGHT - 50),  # Scattered box very low
+    Block(4200, HEIGHT - 100),  # Scattered box very low
+    Block(4400, HEIGHT - 150),  # Scattered box very low
+    RectangularSpike(4600, HEIGHT - 20),  # Rectangular spike moving upward from below
+    RectangularSpike(5000, HEIGHT - 20),  # Another rectangular spike
+    RectangularSpike(5400, HEIGHT - 20),  # Another rectangular spike
+]
+
+def redraw_window():
+    global bgX, bgX2, current_bg_index, win
+
+    if pygame.display.get_surface() is None:
+        print("Warning: Attempting to draw on a closed display.")
+        return  # Prevent blitting on a closed surface
+
+    # Change background every 3-score interval
+    current_bg_index = (score // 3) % len(backgrounds)
+
+    # Draw backgrounds
+    win.blit(backgrounds[current_bg_index], (bgX, 0))
+    win.blit(backgrounds[current_bg_index], (bgX2, 0))
+
+    # Move background
+    bgX -= (speed / 30) * 1.4
+    bgX2 -= (speed / 30) * 1.4
+
+    # Reset background position
+    if bgX < -WIDTH:
+        bgX = WIDTH
+    if bgX2 < -WIDTH:
+        bgX2 = WIDTH
+
+    # Draw obstacles
+    for obstacle in obstacles:
+        obstacle.move()  # Update obstacle position
+        obstacle.draw(win)  # Draw obstacle
+
+    # Draw balls
+    for ball in balls:
+        ball.move()  # Update ball position (falling down)
+        ball.draw(win)  # Draw ball
+
+    # Draw player
+    runner.draw(win)
+
+    # Display Score
+    font = pygame.font.SysFont("Arial", 30)
+    text = font.render(f"Score: {score}", True, (0, 0, 0))
+    win.blit(text, (10, 10))
+
+    pygame.display.update()
+
+# (Rest of the code remains unchanged)
+
+
 
 import pygame
 import sys
