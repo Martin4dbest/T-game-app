@@ -1,4 +1,4 @@
-# Who Wants to Be a Millionaire - Trivia Game
+# In - It - To - Win - It - Quiz Game
 
 ![Logo](logo.png)
 
