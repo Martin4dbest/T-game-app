@@ -17,6 +17,7 @@ from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
 from threading import Thread
+from PIL import Image, ImageTk
 #from minigame_bonus.main import start_game
 
 
@@ -64,18 +65,22 @@ def update_amount_won(username, amount):
     conn.close()
 
     
+import sqlite3
 
-def register_user(username, password):
+def register_user(username, password, avatar_path):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
+
     try:
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        c.execute("INSERT INTO users (username, password, avatar_path) VALUES (?, ?, ?)", 
+                  (username, password, avatar_path))
         conn.commit()
-        conn.close()
         return True
     except sqlite3.IntegrityError:
-        conn.close()
         return False
+    finally:
+        conn.close()  # Ensures connection closes even if an error occurs
+
 
 def username_exists(username):
     conn = sqlite3.connect("users.db")
@@ -101,7 +106,9 @@ def authenticate_user(username, password):
 def create_leaderboard_table():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute('''DROP TABLE IF EXISTS leaderboard''')  # Drop the existing table if it exists
+    c.execute('''DROP TABLE IF EXISTS leaderboard''')  # This deletes the table on every run
+    
+    # ✅ Added avatar_path column
     c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT, 
@@ -109,22 +116,25 @@ def create_leaderboard_table():
                     category_played TEXT, 
                     minigame_score INTEGER DEFAULT 0, 
                     time_spent REAL DEFAULT 0, 
-                    lives_used INTEGER DEFAULT 0
-                )''')  # Recreate the table with an auto-incrementing ID
+                    lives_used INTEGER DEFAULT 0,
+                    avatar_path TEXT DEFAULT 'avatars/default_avatar.png'
+                )''')  # Now includes avatar_path
+    
     conn.commit()
     conn.close()
 
+# Call function to recreate table with the new structure
 create_leaderboard_table()
 
-def update_leaderboard(username, amount_won, category_played, minigame_score=0, time_spent=0, lives_used=0):
+
+def update_leaderboard(username, amount_won, category_played, minigame_score=0, time_spent=0, lives_used=0, avatar_path="avatars/default_avatar.png"):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
 
-    # Always insert a new record, allowing duplicate usernames
     c.execute('''INSERT INTO leaderboard 
-                 (username, amount_won, category_played, minigame_score, time_spent, lives_used) 
-                 VALUES (?, ?, ?, ?, ?, ?)''', 
-              (username, amount_won, category_played, minigame_score, time_spent, lives_used))
+                 (username, amount_won, category_played, minigame_score, time_spent, lives_used, avatar_path) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+              (username, amount_won, category_played, minigame_score, time_spent, lives_used, avatar_path))
 
     conn.commit()
     conn.close()
@@ -132,46 +142,63 @@ def update_leaderboard(username, amount_won, category_played, minigame_score=0, 
 
 
 
-import sqlite3
-import tkinter as tk
-from tkinter import ttk
+
 
 def complete_category(username, category_played, time_spent=5, lives_used=1):
     """Call this function when a user completes a category"""
     update_leaderboard(username, 100000000, category_played, minigame_score=10, time_spent=time_spent, lives_used=lives_used)
 
+
+from PIL import Image, ImageTk
+
+import tkinter as tk
+from tkinter import ttk
+import sqlite3
+
+import os
+import sqlite3
+import tkinter as tk
+from tkinter import ttk
+
 def show_leaderboard():
+    """Fetches leaderboard data and displays user avatars."""
     leaderboard_window = tk.Toplevel()
     leaderboard_window.title("Leaderboard")
     leaderboard_window.geometry("1200x600")
 
-    # Create a frame with a colored background
-    background_frame = tk.Frame(leaderboard_window, bg="green")
+    # Create a frame with a professional dark blue background
+    background_frame = tk.Frame(leaderboard_window, bg="#1a1a2e")
     background_frame.pack(fill="both", expand=True)
 
-    # Create a frame to contain the leaderboard table
-    frame = tk.Frame(background_frame, bg="lightyellow", width=1100, height=500)
+    # Create a frame for the leaderboard table
+    frame = tk.Frame(background_frame, bg="white", width=1100, height=500, relief="ridge", bd=5)
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Retrieve leaderboard data from the database
+    # Retrieve leaderboard data (including avatar paths)
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute("SELECT username, category_played, amount_won, minigame_score, time_spent, lives_used FROM leaderboard ORDER BY amount_won DESC")
+    c.execute("SELECT avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used FROM leaderboard ORDER BY amount_won DESC")
     leaderboard_data = c.fetchall()
     conn.close()
 
-    # Create a table to display leaderboard data
-    table = ttk.Treeview(frame, columns=("Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent", "Lives Used"))
-    
-    table.heading("#0", text="Rank")
-    table.heading("Username", text="The Champions")
+    # Create a Treeview table
+    columns = ("Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent", "Lives Used")
+    table = ttk.Treeview(frame, columns=columns, show="headings", height=10)
+
+    # Style the Treeview
+    style = ttk.Style()
+    style.configure("Treeview", font=("Helvetica", 12), rowheight=50)
+    style.configure("Treeview.Heading", font=("Helvetica", 14, "bold"), foreground="gold")
+
+    # Define column headings
+    table.heading("Username", text="Username")
     table.heading("Category Played", text="Category Played")
     table.heading("Amount Won", text="Amount Won")
     table.heading("Minigame Score", text="Minigame Score")
-    table.heading("Time Spent", text="Time Spent (seconds)")
+    table.heading("Time Spent", text="Time Spent (sec)")
     table.heading("Lives Used", text="Lives Used")
 
-    table.column("#0", width=50, anchor="center")  # Rank column
+    # Set column widths and alignment
     table.column("Username", width=200, anchor="center")
     table.column("Category Played", width=200, anchor="center")
     table.column("Amount Won", width=150, anchor="center")
@@ -179,31 +206,122 @@ def show_leaderboard():
     table.column("Time Spent", width=150, anchor="center")
     table.column("Lives Used", width=150, anchor="center")
 
-    # Insert leaderboard data
-    for i, (username, category_played, amount_won, minigame_score, time_spent, lives_used) in enumerate(leaderboard_data, start=1):
-        table.insert("", "end", text=str(i), values=(username, category_played, amount_won, minigame_score, time_spent, lives_used))
+    # Create a frame for avatars
+    avatar_frame = tk.Frame(frame, bg="white")
+    avatar_frame.place(x=20, y=80)
 
-    table.pack(expand=True, fill="both")
+    avatars = []  # Keep references to prevent garbage collection
 
+    # Insert leaderboard data (and display avatars)
+    for i, (avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used) in enumerate(leaderboard_data, start=1):
+        table.insert("", "end", values=(username, category_played, amount_won, minigame_score, time_spent, lives_used))
+
+        # Load the avatar image (fallback to default image if not found)
+        if avatar_path and os.path.exists(avatar_path):
+            avatar_img = tk.PhotoImage(file=avatar_path)
+        else:
+            avatar_img = tk.PhotoImage(file="avatars/avarta.png")  # Default image
+
+        avatars.append(avatar_img)  # Keep reference
+        avatar_label = tk.Label(avatar_frame, image=avatar_img, bg="white")
+        avatar_label.image = avatar_img  # Prevent garbage collection
+        avatar_label.grid(row=i, column=0, padx=5, pady=2)
+
+    # Place the table in the frame
+    table.pack(expand=True, fill="both", padx=20, pady=20)
+
+    leaderboard_window.mainloop()
+
+# Ensure the avatars directory exists at the start
+if not os.path.exists("avatars"):
+    os.makedirs("avatars")
+
+
+
+
+import shutil
+from tkinter import filedialog, messagebox
+import os
+import shutil
+from tkinter import filedialog, messagebox
+import sqlite3
 
 def register():
     username = username_entry.get()
     password = password_entry.get()
+
     if not username or not password:
         messagebox.showerror("Error", "Please enter a username and password.")
         return
+
     if len(password) < 6 or not password.isalnum():
         messagebox.showerror("Error", "Password must be alphanumeric and at least 6 characters long.")
         return
+
     if username_exists(username):
         messagebox.showerror("Error", "Username already exists. Please choose a different username.")
         return
-    if register_user(username, password):
+
+    # Ensure the avatars directory exists
+    avatar_dir = "avatars"
+    os.makedirs(avatar_dir, exist_ok=True)
+
+    # Open file dialog for profile picture
+    file_path = filedialog.askopenfilename(title="Select Profile Picture", filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+
+    if file_path:
+        # Define the new location for the image
+        new_avatar_path = os.path.join(avatar_dir, f"{username}.png")
+        if not os.path.exists(new_avatar_path):  # Avoid overwriting
+            shutil.copy(file_path, new_avatar_path)
+    else:
+        # If no image is uploaded, set a default avatar
+        default_avatar = os.path.join(avatar_dir, "avartar.png")
+        if not os.path.exists(default_avatar):
+            messagebox.showwarning("Warning", "Default avatar not found. Please upload an image.")
+            return
+        new_avatar_path = default_avatar
+
+    # Register user in the database
+    if register_user(username, password, new_avatar_path):
         messagebox.showinfo("Success", "Registration successful. You can now log in.")
     else:
         messagebox.showerror("Error", "Failed to register user.")
 
-category_window = None  
+
+import os
+import sqlite3
+
+def register_user(username, password, avatar_path=None):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+
+    # Ensure the avatars directory exists
+    if not os.path.exists("avatars"):
+        os.makedirs("avatars")
+
+    # If no avatar is uploaded, use a default avatar
+    if avatar_path is None or not os.path.exists(avatar_path):
+        avatar_path = "avatars/default_avatar.png"
+    else:
+        # Save the uploaded avatar with a unique name
+        new_avatar_path = f"avatars/{username}_avatar.png"
+        os.rename(avatar_path, new_avatar_path)
+        avatar_path = new_avatar_path  # Update path to store in DB
+
+    try:
+        c.execute("INSERT INTO users (username, password, avatar_path) VALUES (?, ?, ?)", 
+                  (username, password, avatar_path))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()  # Ensure the database connection closes properly
+
+# Initialize category_window
+category_window = None
+
 
 
 def logout():
