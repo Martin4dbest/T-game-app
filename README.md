@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This is a trivia game application inspired by the popular TV show "Who Wants to Be a Millionaire." It allows users to test their general knowledge by answering a series of multiple-choice questions across various categories. The game features lifelines, leaderboards, and user authentication.
+This is a trivia game application inspired by the popular TV show "Who Wants to Be a Millionaire." It allows users to test their general knowledge by answering a series of multiple-choice questions across various categories. The game features lifelines, leaderboards, and also user authentication.
 
 ## Features
 
