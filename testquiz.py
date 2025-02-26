@@ -310,7 +310,6 @@ def register_user(username, password, avatar_path=None):
 category_window = None
 
 
-
 def logout():
     global category_window
     if category_window:
@@ -610,20 +609,8 @@ from tkinter import simpledialog
 
 pygame.init() 
 
-# Initialize Pygame mixer
 mixer.init()
-
-import os
-import sqlite3
-import pyttsx3
-import pygame
-from pygame import mixer
-from tkinter import *
-from tkinter import simpledialog
 import time
-
-# Initialize Pygame mixer
-mixer.init()
 
 def main_game(category, username):
     engine = pyttsx3.init()

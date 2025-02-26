@@ -413,7 +413,6 @@ def end_screen(question_number, score):
 
     return score  # Return score back to quiz logic
 
-
 def start_game(question_number):
     global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
 
@@ -447,6 +446,10 @@ def start_game(question_number):
     fallSpeed = 0
     clock = pygame.time.Clock()  # Initialize clock
 
+    # Timer settings
+    total_time = 30 * 1000  # 30 seconds in milliseconds
+    start_time = pygame.time.get_ticks()
+
     # Ensure music is loaded before playing
     if os.path.exists(music_path):
         pygame.mixer.music.load(music_path)
@@ -456,6 +459,13 @@ def start_game(question_number):
     while run:
         clock.tick(speed)
         score = speed // 10 - 3  # Score calculation
+
+        # Calculate remaining time
+        elapsed_time = pygame.time.get_ticks() - start_time
+        remaining_time = max(0, (total_time - elapsed_time) // 1000)  # Convert ms to seconds
+
+        if remaining_time == 0:
+            run = False  # End game when timer reaches zero
 
         # Handle obstacles
         for obstacle in obstacles[:]:
@@ -498,7 +508,16 @@ def start_game(question_number):
         # Ensure the display is still active before updating
         if pygame.display.get_surface():
             redraw_window()
+            # Display the timer
+            font = pygame.font.SysFont("Arial", 30)
+            timer_text = font.render(f"Time Left: {remaining_time}s", True, (255, 0, 0))
+            win.blit(timer_text, (600, 10))
+            pygame.display.update()
 
     pygame.mixer.music.stop()
 
-    return end_screen(question_number, score)  # Play failure sound before returning to quiz
+   # Play failure sound before returning to quiz
+    final_score = end_screen(question_number, score)
+    return final_score  # Return only the score
+
+
