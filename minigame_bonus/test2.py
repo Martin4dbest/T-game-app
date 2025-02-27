@@ -306,92 +306,116 @@ obstacles = [
 ]
 
 
-
 import pygame
 import sys
 import os
 import random
 
 def redraw_window():
-    global bgX, bgX2, current_bg_index, win, timer, start_ticks
-    
+    global bgX, bgX2, current_bg_index, win
+
     if pygame.display.get_surface() is None:
+        print("Warning: Attempting to draw on a closed display.")
         return
-    
+
     current_bg_index = (score // 3) % len(backgrounds)
     win.blit(backgrounds[current_bg_index], (bgX, 0))
     win.blit(backgrounds[current_bg_index], (bgX2, 0))
-    
+
     bgX -= (speed / 30) * 1.4
     bgX2 -= (speed / 30) * 1.4
+
     if bgX < -WIDTH:
         bgX = WIDTH
     if bgX2 < -WIDTH:
         bgX2 = WIDTH
-    
+
     for obstacle in obstacles:
         obstacle.draw(win)
-    
     for ball in balls:
         ball.move()
         ball.draw(win)
-    
+
     runner.draw(win)
-    
+
     font = pygame.font.SysFont("Arial", 30)
     text = font.render(f"Score: {score}", True, (0, 0, 0))
     win.blit(text, (10, 10))
-    
-    elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-    timer_text = font.render(f"Time: {40 - elapsed_time}s", True, (255, 255, 255))
-    lives_text = font.render("Lives: 1", True, (255, 255, 255))
-    win.blit(timer_text, (650, 10))
-    win.blit(lives_text, (650, 50))
-    
+
     pygame.display.update()
 
-def end_screen(question_number, score, success=False):
-    global win
-    pygame.mixer.music.pause()  # Pause music instead of stopping/quitting it
-
-    if not success:
+def end_screen(question_number, score):
+    global obstacles, speed
+    pygame.mixer.music.stop()
+    if failure_sound:
         failure_sound.play()
         pygame.time.delay(int(failure_sound.get_length() * 1000))
-    else:
-        win.fill((0, 0, 0))
-        font = pygame.font.SysFont("Arial", 40)
-        message = font.render("Well Done!", True, (0, 255, 0))
-        score_text = font.render(f"Score: {score}", True, (0, 255, 0))
-        target_text = font.render("Target: 5", True, (0, 255, 0))
-        question_text = font.render(f"Questions Attempted: {question_number}", True, (0, 255, 0))  # Use question_number
-        win.blit(message, (300, 200))
-        win.blit(score_text, (300, 250))
-        win.blit(target_text, (300, 300))
-        win.blit(question_text, (300, 350))  # Display question count
-        pygame.display.update()
-        pygame.time.delay(5000)
-
-    pygame.display.quit()  # Close the minigame window properly
-    return score  # Return score to the main game
+    return score
 
 
+def display_popup(message):
+    """Display a popup with Yes/No options."""
+    popup_width, popup_height = 400, 200
+    popup_x, popup_y = (800 - popup_width) // 2, (600 - popup_height) // 2
+    button_width, button_height = 100, 50
+
+    font = pygame.font.SysFont("Arial", 30)
+
+    # Popup box
+    pygame.draw.rect(win, (50, 50, 50), (popup_x, popup_y, popup_width, popup_height))  # Dark gray box
+    pygame.draw.rect(win, (255, 255, 255), (popup_x, popup_y, popup_width, popup_height), 2)  # White border
+
+    # Text
+    text = font.render(message, True, (255, 255, 255))
+    win.blit(text, (popup_x + 30, popup_y + 30))
+
+    # Buttons
+    yes_button = pygame.Rect(popup_x + 50, popup_y + 100, button_width, button_height)
+    no_button = pygame.Rect(popup_x + popup_width - button_width - 50, popup_y + 100, button_width, button_height)
+
+    pygame.draw.rect(win, (0, 255, 0), yes_button)  # Green Yes button
+    pygame.draw.rect(win, (255, 0, 0), no_button)  # Red No button
+
+    # Button text
+    win.blit(font.render("Yes", True, (0, 0, 0)), (yes_button.x + 30, yes_button.y + 10))
+    win.blit(font.render("No", True, (0, 0, 0)), (no_button.x + 35, no_button.y + 10))
+
+    pygame.display.update()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()  # Exit game properly
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if yes_button.collidepoint(event.pos):
+                    return "Yes"  # Return "Yes" to continue the game
+                if no_button.collidepoint(event.pos):
+                    return "No"  # Return "No" to end the game
 
 
-def start_game(question_number):
-    global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives, start_ticks
-    
-    if question_number % 3 != 0:
-        return 0  
-    
-    pygame.init()
+def start_game(question_number, extra_time=0):
+    global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
+
+    if not pygame.get_init():
+        pygame.init()
     pygame.mixer.init()
-    win = pygame.display.set_mode((800, 600))
+
+    if question_number % 3 != 0 and question_number != 15:
+        return 0  
+
+    if pygame.display.get_surface() is None:
+        win = pygame.display.set_mode((800, 600))
+    else:
+        win = pygame.display.get_surface()
+
     pygame.display.set_caption(f"Minigame - Question {question_number}")
-    
+
     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
     pygame.time.set_timer(pygame.USEREVENT + 2, 3000)
     pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
-    
+
     speed = 30
     score = 0
     runner = Player(200, 313, 64, 64)
@@ -400,33 +424,73 @@ def start_game(question_number):
     pause = 0
     fallSpeed = 0
     clock = pygame.time.Clock()
-    start_ticks = pygame.time.get_ticks()
-    
+
+    total_time = (60 if question_number == 15 else 30) + extra_time  
+    total_time *= 1000  # Convert to milliseconds
+    start_time = pygame.time.get_ticks()
+    lives = 2 if question_number == 15 else 0  # Final minigame has 2 lives
+
     if os.path.exists(music_path):
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.play(-1)
-    
+
     run = True
+    final_target = 10 if question_number == 15 else 5  # Target score for final game = 10, others = 5
+
     while run:
         clock.tick(speed)
-        elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-        
-        if elapsed_time >= 40:
-            return end_screen(question_number, score, success=True)
-        
-        score = speed // 10 - 3
-        
+        score = speed // 10 - 3  
+        elapsed_time = pygame.time.get_ticks() - start_time
+        remaining_time = max(0, (total_time - elapsed_time) // 1000)
+
+        # Check if time is up
+        if remaining_time == 0:
+            run = False
+            break  
+
+        # Handle obstacle collisions
         for obstacle in obstacles[:]:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
-                return end_screen(question_number, score)
+                if lives > 0:
+                    lives -= 1
+                    display_popup(f"Oops! You lost a life. {lives} life{'s' if lives > 1 else ''} remaining.")
+                    if lives == 0:
+                        display_popup("Game Over! You have 0 lives remaining.")
+                        pygame.mixer.music.stop()
+                        return score  # End game
+                else:
+                    pygame.mixer.music.stop()
+                    run = False
+                    break
         
+        # Handle ball collisions
         for ball in balls[:]:
             if ball.y > runner.y - 100:
                 ball.move()
             if ball.collide(runner.hitbox):
-                return end_screen(question_number, score)
-        
+                if lives > 0:
+                    lives -= 1
+                    display_popup(f"Oops! You lost a life. {lives} life{'s' if lives > 1 else ''} remaining.")
+                    if lives == 0:
+                        display_popup("Game Over! You have 0 lives remaining.")
+                        pygame.mixer.music.stop()
+                        return score  # End game
+                else:
+                    pygame.mixer.music.stop()
+                    run = False
+                    break
+
+        # Reaching target score - Player gets option to continue or return to quiz
+        if score >= final_target and remaining_time > 0:
+            choice = display_popup("Congratulations!! You hit the target score!! Do you want to continue playing?")
+            if choice == "No":
+                display_total_score(score)  # ✅ Call this function to display the score
+                return score  # Return back to quiz game
+            elif choice == "Yes":
+                # Continue the game without resetting anything
+                pass
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -435,8 +499,9 @@ def start_game(question_number):
             if event.type == pygame.USEREVENT + 2:
                 obstacles.append(Saw(810, 310) if random.choice([True, False]) else Spike(810, 0))
             if event.type == pygame.USEREVENT + 3:
-                balls.append(Ball(810, -100, random.randint(20, 40), (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
-        
+                balls.append(Ball(810, -100, random.randint(20, 40), 
+                                  (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
+
         keys = pygame.key.get_pressed()
         if not runner.falling:
             if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
@@ -444,9 +509,36 @@ def start_game(question_number):
                     runner.jumping = True
             if keys[pygame.K_DOWN]:
                 runner.sliding = True
-        
+
         runner.move()
-        redraw_window()
-    
-    pygame.quit()
-    return 0
+
+        if pygame.display.get_surface():
+            redraw_window()
+            font = pygame.font.SysFont("Arial", 30)
+            timer_text = font.render(f"Time Left: {remaining_time}s", True, (255, 0, 0))
+            win.blit(timer_text, (600, 10))
+            
+            if question_number == 15:  # Only show lives on final minigame
+                lives_text = font.render(f"Lives: {lives}", True, (0, 0, 255))
+                win.blit(lives_text, (600, 50))
+
+            pygame.display.update()
+
+    pygame.mixer.music.stop()
+    if question_number == 15:
+        final_score = end_screen(question_number, score)
+        return final_score  
+    return score  
+
+
+
+
+def display_total_score(score):
+    """Display total score before returning to the quiz."""
+    font = pygame.font.SysFont("Arial", 40)
+    win.fill((0, 0, 0))
+    text = font.render(f"Total Score: {score}", True, (255, 255, 255))
+    win.blit(text, (300, 250))
+    pygame.display.update()
+    pygame.time.delay(2000)  # Show score for 2 seconds before returning
+

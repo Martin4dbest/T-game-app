@@ -636,6 +636,7 @@ def main_game(category, username):
                 mixer.music.play(-1)
 
     def select(event):
+        final_minigame_score = 0  # Default value
         """Handles answer selection, minigame transitions, and quiz progression"""
         nonlocal question_counter, final_minigame_lives
 
