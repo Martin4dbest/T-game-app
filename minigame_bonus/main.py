@@ -312,7 +312,7 @@ import sys
 import os
 import random
 
-def redraw_window():
+def redraw_window(question_number):
     global bgX, bgX2, current_bg_index, win, timer, start_ticks
     
     if pygame.display.get_surface() is None:
@@ -342,13 +342,22 @@ def redraw_window():
     text = font.render(f"Score: {score}", True, (0, 0, 0))
     win.blit(text, (10, 10))
     
+    # Adjust timer and lives based on question number
+    max_time = 60 if question_number == 15 else 40
+    lives = 2 if question_number == 15 else 1
+
     elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-    timer_text = font.render(f"Time: {40 - elapsed_time}s", True, (255, 255, 255))
-    lives_text = font.render("Lives: 1", True, (255, 255, 255))
+    remaining_time = max_time - elapsed_time
+
+    # Display timer and lives in red at the top right
+    timer_text = font.render(f"Time: {remaining_time}s", True, (255, 0, 0))
+    lives_text = font.render(f"Lives: {lives}", True, (255, 0, 0))
     win.blit(timer_text, (650, 10))
     win.blit(lives_text, (650, 50))
     
     pygame.display.update()
+
+
 
 def end_screen(question_number, score, success=False):
     global win
@@ -446,7 +455,8 @@ def start_game(question_number):
                 runner.sliding = True
         
         runner.move()
-        redraw_window()
+        redraw_window(question_number)
+
     
     pygame.quit()
     return 0
