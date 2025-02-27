@@ -305,53 +305,6 @@ obstacles = [
     RectangularSpike(5400, HEIGHT - 20),  # Another rectangular spike
 ]
 
-def redraw_window():
-    global bgX, bgX2, current_bg_index, win
-
-    if pygame.display.get_surface() is None:
-        print("Warning: Attempting to draw on a closed display.")
-        return  # Prevent blitting on a closed surface
-
-    # Change background every 3-score interval
-    current_bg_index = (score // 3) % len(backgrounds)
-
-    # Draw backgrounds
-    win.blit(backgrounds[current_bg_index], (bgX, 0))
-    win.blit(backgrounds[current_bg_index], (bgX2, 0))
-
-    # Move background
-    bgX -= (speed / 30) * 1.4
-    bgX2 -= (speed / 30) * 1.4
-
-    # Reset background position
-    if bgX < -WIDTH:
-        bgX = WIDTH
-    if bgX2 < -WIDTH:
-        bgX2 = WIDTH
-
-    # Draw obstacles
-    for obstacle in obstacles:
-        obstacle.move()  # Update obstacle position
-        obstacle.draw(win)  # Draw obstacle
-
-    # Draw balls
-    for ball in balls:
-        ball.move()  # Update ball position (falling down)
-        ball.draw(win)  # Draw ball
-
-    # Draw player
-    runner.draw(win)
-
-    # Display Score
-    font = pygame.font.SysFont("Arial", 30)
-    text = font.render(f"Score: {score}", True, (0, 0, 0))
-    win.blit(text, (10, 10))
-
-    pygame.display.update()
-
-# (Rest of the code remains unchanged)
-
-
 
 import pygame
 import sys
@@ -363,70 +316,110 @@ def redraw_window():
 
     if pygame.display.get_surface() is None:
         print("Warning: Attempting to draw on a closed display.")
-        return  # Prevent blitting on a closed surface
+        return
 
-    # Change background every 3-score interval
     current_bg_index = (score // 3) % len(backgrounds)
-
-    # Draw backgrounds
     win.blit(backgrounds[current_bg_index], (bgX, 0))
     win.blit(backgrounds[current_bg_index], (bgX2, 0))
 
-    # Move background
     bgX -= (speed / 30) * 1.4
     bgX2 -= (speed / 30) * 1.4
 
-    # Reset background position
     if bgX < -WIDTH:
         bgX = WIDTH
     if bgX2 < -WIDTH:
         bgX2 = WIDTH
 
-    # Draw obstacles
     for obstacle in obstacles:
         obstacle.draw(win)
-
-    # Draw balls
     for ball in balls:
-        ball.move()  # Update ball position (falling down)
-        ball.draw(win)  # Draw ball
+        ball.move()
+        ball.draw(win)
 
-    # Draw player
     runner.draw(win)
 
-    # Display Score
     font = pygame.font.SysFont("Arial", 30)
     text = font.render(f"Score: {score}", True, (0, 0, 0))
     win.blit(text, (10, 10))
 
     pygame.display.update()
 
-
 def end_screen(question_number, score):
     global obstacles, speed
-
-    pygame.mixer.music.stop()  # Stop background music
-
+    pygame.mixer.music.stop()
     if failure_sound:
         failure_sound.play()
-        pygame.time.delay(int(failure_sound.get_length() * 1000))  # Wait for sound to complete
+        pygame.time.delay(int(failure_sound.get_length() * 1000))
+    return score
 
-    return score  # Return score back to quiz logic
+
+import tkinter as tk
+from tkinter import simpledialog
+
+def display_options(options):
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+    choice = simpledialog.askstring("Choose an Option", f"Choose:\n1. {options[0]}\n2. {options[1]}")
+    
+    if choice == "1":
+        return options[0]  # "Return to Quiz"
+    elif choice == "2":
+        return options[1]  # "Continue Playing"
+    else:
+        return None  # Handle invalid input
 
 
-def start_game(question_number):
+def display_popup(question):
+    """Display a popup with Yes/No options."""
+    popup_width, popup_height = 400, 200
+    popup_x, popup_y = (800 - popup_width) // 2, (600 - popup_height) // 2
+    button_width, button_height = 100, 50
+
+    font = pygame.font.SysFont("Arial", 24)
+    question_text = font.render(question, True, (255, 255, 255))
+
+    yes_button_rect = pygame.Rect(popup_x + 50, popup_y + 100, button_width, button_height)
+    no_button_rect = pygame.Rect(popup_x + popup_width - button_width - 50, popup_y + 100, button_width, button_height)
+
+    while True:
+        pygame.draw.rect(win, (0, 0, 0), (popup_x, popup_y, popup_width, popup_height))  # Popup background
+        pygame.draw.rect(win, (255, 255, 255), (popup_x, popup_y, popup_width, popup_height), 2)  # Border
+
+        win.blit(question_text, (popup_x + 50, popup_y + 30))
+
+        pygame.draw.rect(win, (0, 255, 0), yes_button_rect)
+        pygame.draw.rect(win, (255, 0, 0), no_button_rect)
+
+        yes_text = font.render("Yes", True, (0, 0, 0))
+        no_text = font.render("No", True, (0, 0, 0))
+
+        win.blit(yes_text, (yes_button_rect.x + 30, yes_button_rect.y + 10))
+        win.blit(no_text, (no_button_rect.x + 35, no_button_rect.y + 10))
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return None
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if yes_button_rect.collidepoint(event.pos):
+                    return "Yes"
+                if no_button_rect.collidepoint(event.pos):
+                    return "No"
+
+
+
+def start_game(question_number, extra_time=0):
     global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives
 
     if not pygame.get_init():
         pygame.init()
-    
-    pygame.mixer.init()  # Ensure mixer is initialized
+    pygame.mixer.init()
 
-    # Only start the minigame when question_number is a multiple of 3
-    if question_number % 3 != 0:
+    if question_number % 3 != 0 and question_number != 15:
         return 0  
 
-    # Ensure display is initialized
     if pygame.display.get_surface() is None:
         win = pygame.display.set_mode((800, 600))
     else:
@@ -445,38 +438,71 @@ def start_game(question_number):
     balls = []
     pause = 0
     fallSpeed = 0
-    clock = pygame.time.Clock()  # Initialize clock
+    clock = pygame.time.Clock()
 
-    # Ensure music is loaded before playing
+    total_time = (30 + extra_time) * 1000  # Extend time based on previous scores
+    start_time = pygame.time.get_ticks()
+    lives = 2  # Allow two retries
+
     if os.path.exists(music_path):
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.play(-1)
 
     run = True
+    final_target = 5  # Final winning target
+
     while run:
         clock.tick(speed)
-        score = speed // 10 - 3  # Score calculation
+        score = speed // 10 - 3  
+        elapsed_time = pygame.time.get_ticks() - start_time
+        remaining_time = max(0, (total_time - elapsed_time) // 1000)
 
-        # Handle obstacles
+        # Check if time is up
+        if remaining_time == 0:
+            run = False
+            break  # Exit game when time runs out
+
+        # Handle obstacle collisions
         for obstacle in obstacles[:]:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
-                pygame.mixer.music.stop()
-                run = False
-                break
-
-        # Handle falling balls
+                if lives > 0:
+                    lives -= 1  # Use a retry
+                else:
+                    pygame.mixer.music.stop()
+                    run = False
+                    break
+        
+        # Handle ball collisions
         for ball in balls[:]:
             if ball.y > runner.y - 100:
                 ball.move()
             if ball.collide(runner.hitbox):
-                pygame.mixer.music.stop()
-                run = False
-                break
+                if lives > 0:
+                    lives -= 1  # Use a retry
+                else:
+                    pygame.mixer.music.stop()
+                    run = False
+                    break
+
+        # Reaching Final Target (5) - Player gets option to continue or return to quiz
+        if score >= final_target and remaining_time > 0 and lives > 0:
+            if question_number in [3, 6, 9, 12]:  # For these stages, return to quiz on "No"
+                choice = display_popup("Do you want to continue?")
+                if choice == "No":
+                    return score  # Save score for extra time in final minigame
+                elif choice == "Yes":
+                    extra_time += 10  # Add more time for continued play
+            elif question_number == 15:  # For the final minigame, existing behavior remains
+                choice = display_popup("Do you want to continue?")
+                if choice == "No":
+                    break  # Stop playing and enter leaderboard
+                elif choice == "Yes":
+                    extra_time += 10  # Add more time for continued play
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False  # Set flag instead of quitting Pygame immediately
+                run = False
             if event.type == pygame.USEREVENT + 1:
                 speed += 1
             if event.type == pygame.USEREVENT + 2:
@@ -494,11 +520,20 @@ def start_game(question_number):
                 runner.sliding = True
 
         runner.move()
-        
-        # Ensure the display is still active before updating
+
         if pygame.display.get_surface():
             redraw_window()
+            font = pygame.font.SysFont("Arial", 30)
+            timer_text = font.render(f"Time Left: {remaining_time}s", True, (255, 0, 0))
+            lives_text = font.render(f"Lives: {lives}", True, (0, 0, 255))
+            win.blit(timer_text, (600, 10))
+            win.blit(lives_text, (600, 50))
+            pygame.display.update()
 
     pygame.mixer.music.stop()
+    if question_number == 15:
+        final_score = end_screen(question_number, score)
+        return final_score  # Return final score for leaderboard update
+    return score  # For other stages, return score for extra time in final minigame
 
-    return end_screen(question_number, score)  # Play failure sound before returning to quiz
+
