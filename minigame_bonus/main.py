@@ -306,7 +306,6 @@ obstacles = [
 ]
 
 
-
 import pygame
 import sys
 import os
@@ -342,14 +341,12 @@ def redraw_window(question_number):
     text = font.render(f"Score: {score}", True, (0, 0, 0))
     win.blit(text, (10, 10))
     
-    # Adjust timer and lives based on question number
     max_time = 60 if question_number == 15 else 40
     lives = 2 if question_number == 15 else 1
 
     elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
     remaining_time = max_time - elapsed_time
-
-    # Display timer and lives in red at the top right
+    
     timer_text = font.render(f"Time: {remaining_time}s", True, (255, 0, 0))
     lives_text = font.render(f"Lives: {lives}", True, (255, 0, 0))
     win.blit(timer_text, (650, 10))
@@ -414,15 +411,17 @@ def start_game(question_number):
     
     run = True
     target_score = 10 if question_number == 15 else 5
+    allow_continuation = question_number in [3, 6, 9, 12]
     
     while run:
         clock.tick(speed)
         elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
+        remaining_time = 60 if question_number == 15 else 40
         
-        if elapsed_time >= (60 if question_number == 15 else 40):
+        if elapsed_time >= remaining_time:
             return end_screen(question_number, score, success=True)
         
-        if score >= target_score and question_number != 15:
+        if not allow_continuation and score >= target_score:
             return end_screen(question_number, score, success=True)
         
         score = speed // 10 - 3
