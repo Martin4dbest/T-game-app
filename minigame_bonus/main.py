@@ -352,7 +352,7 @@ def redraw_window():
 
 def end_screen(question_number, score, success=False):
     global win
-    pygame.mixer.music.pause()  # Pause music instead of stopping/quitting it
+    pygame.mixer.music.pause()  # Pause music instead of stopping/quitting it again
 
     if not success:
         failure_sound.play()
