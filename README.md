@@ -27,7 +27,7 @@ This is a trivia game application inspired by the popular TV show "Who Wants to 
 1. Clone the repository to your local machine:
 
     ```bash
-    git clone https://github.com/your_username/who-wants-to-be-a-millionaire.git
+    git clone https://github.com/Martin4dbest/T-game-app.git
     ```
 
 2. Install the required dependencies:

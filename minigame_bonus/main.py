@@ -357,12 +357,12 @@ def redraw_window(question_number):
     
     pygame.display.update()
 
-
-
 def end_screen(question_number, score, success=False):
     global win
-    pygame.mixer.music.pause()  # Pause music instead of stopping/quitting it again
-
+    pygame.mixer.music.pause()
+    
+    target_score = 10 if question_number == 15 else 5
+    
     if not success:
         failure_sound.play()
         pygame.time.delay(int(failure_sound.get_length() * 1000))
@@ -371,20 +371,17 @@ def end_screen(question_number, score, success=False):
         font = pygame.font.SysFont("Arial", 40)
         message = font.render("Well Done!", True, (0, 255, 0))
         score_text = font.render(f"Score: {score}", True, (0, 255, 0))
-        target_text = font.render("Target: 5", True, (0, 255, 0))
-        question_text = font.render(f"Questions Attempted: {question_number}", True, (0, 255, 0))  # Use question_number
+        target_text = font.render(f"Target: {target_score}", True, (0, 255, 0))
+        question_text = font.render(f"Questions Attempted: {question_number}", True, (0, 255, 0))
         win.blit(message, (300, 200))
         win.blit(score_text, (300, 250))
         win.blit(target_text, (300, 300))
-        win.blit(question_text, (300, 350))  # Display question count
+        win.blit(question_text, (300, 350))
         pygame.display.update()
         pygame.time.delay(5000)
-
-    pygame.display.quit()  # Close the minigame window properly
-    return score  # Return score to the main game
-
-
-
+    
+    pygame.display.quit()
+    return score
 
 def start_game(question_number):
     global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives, start_ticks
@@ -416,11 +413,16 @@ def start_game(question_number):
         pygame.mixer.music.play(-1)
     
     run = True
+    target_score = 10 if question_number == 15 else 5
+    
     while run:
         clock.tick(speed)
         elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
         
-        if elapsed_time >= 40:
+        if elapsed_time >= (60 if question_number == 15 else 40):
+            return end_screen(question_number, score, success=True)
+        
+        if score >= target_score and question_number != 15:
             return end_screen(question_number, score, success=True)
         
         score = speed // 10 - 3
@@ -456,7 +458,6 @@ def start_game(question_number):
         
         runner.move()
         redraw_window(question_number)
-
     
     pygame.quit()
     return 0
