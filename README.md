@@ -9,8 +9,8 @@ This is a trivia game application inspired by the popular TV show "Who Wants to 
 ## Features
 
 - **User Registration and Login**: Users can register for an account or log in with their credentials.
-- **Game Categories**: Players can choose from a variety of categories such as General Knowledge, Geography, History, Literature, Music, and more.
-- **Lifelines**: Lifelines like 50-50, Ask the Audience, and Phone a Friend help users when they're stuck.
+- **Game Categories**: Players can choose from a variety of categories such as General Knowledge, Geography, History, Literature, Music, Computer Science and more.
+- **Lifelines**: Lifelines like 50-50, Ask the Audience, and Phone a Friend which help users when they're stuck.
 - **Leaderboard**: A leaderboard displays the top scorers in the game.
 - **Interactive User Interface**: The game has a user-friendly interface with buttons, labels, and lifeline options.
 
