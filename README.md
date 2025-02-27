@@ -17,7 +17,7 @@ This is a trivia game application inspired by the popular TV show "Who Wants to 
 ## Technologies Used
 
 - **Python**: The backend logic of the game is implemented in Python.
-- **Tkinter**: The graphical user interface is built using the Tkinter library for Python
+- **Tkinter**: The graphical user interface is built using the Tkinter library for Python.
 - **SQLite**: User data and game statistics are stored in a SQLite database.
 - **Pygame**: Background music and sound effects are implemented using the Pygame library.
 - **Text-to-Speech**: The pyttsx3 library is used for text-to-speech functionality.
