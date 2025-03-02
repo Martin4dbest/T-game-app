@@ -444,23 +444,35 @@ def create_leaderboard_table():
 
 def show_rules():
     """Opens a new window displaying the game rules."""
-    rules_window = tk.Toplevel(category_window)
+    rules_window = tk.Toplevel()
     rules_window.title("Game Rules")
-    rules_window.geometry("400x300")
+    rules_window.geometry("700x700")
+
     rules_window.configure(bg="black")
 
-    rules_text = """🎉 Welcome to the Ultimate Challenge! 🎮
+    rules_text = """🎉 Welcome to the Ultimate Challenge -IN IT TO WIN IT! 🎮
 
-🔥 Rules of the Game:
+🔥 Game Rules:
 
-1️⃣ ✅ Answer questions correctly to move forward!
-2️⃣ ❌ Wrong answers? Get ready for unexpected challenges!
-3️⃣ 🎲 Minigames will pop up at random—stay sharp!
-4️⃣ 🏆 Complete challenges to keep your streak alive!
-5️⃣ 🎯 Enjoy, have fun, and give it your best shot!
+1️⃣ Answer questions correctly to climb the prize ladder.
+2️⃣ Every 3 questions, play a minigame (dodge obstacles).
+3️⃣ Reach the minigame target score within time to continue.
 
-Let’s see if you have what it takes! 🚀💡
-"""
+   ✅ Success: Earn extra quiz time.
+   ❌ Failure: Quiz time is reduced.
+
+4️⃣ A final minigame appears after the 15th question.
+   🏆 Win to secure a spot on the leaderboard.
+5️⃣ The game ends if a quiz question is answered incorrectly.
+
+🎮 Controls:
+   ▶️ Forward Arrow key → Move forward.
+   ⏩ Long Press Forward Arrow key → Bend.
+   ◀️ Backward Arrow key → Move backward slightly.
+   ⬆️ Up Arrow key  → Move up.
+   ⬇️ Down Arrow key → Move down.
+
+Get ready for an exciting challenge! 🚀"""
 
     text_widget = tk.Text(rules_window, wrap="word", fg="white", bg="black", font=("Segoe UI Emoji", 12))
     text_widget.insert("1.0", rules_text)
@@ -470,6 +482,8 @@ Let’s see if you have what it takes! 🚀💡
     back_button = tk.Button(rules_window, text="Back", command=rules_window.destroy, bg="red", fg="white", 
                             font=("Arial", 10, "bold"))
     back_button.pack(pady=10)
+
+
 
 
 
@@ -546,7 +560,7 @@ def create_login_window():
     global root, username_entry, password_entry, password_var
 
     root = tk.Tk()
-    root.title("Who Wants to Be a Millionaire - Login")
+    root.title("IN IT-TO-WIN-IT - Login")
     root.geometry("1430x1430")
     root.resizable(True, True)  # Allow window expansion
 
@@ -612,12 +626,16 @@ pygame.init()
 mixer.init()
 import time
 
+
 def main_game(category, username):
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
 
     quiz_music = "kbc.mp3"
+    if not pygame.mixer.get_init():  
+        pygame.mixer.init()  # ✅ Reinitialize before playing music
+
     if os.path.exists(quiz_music):
         mixer.music.load(quiz_music)
         mixer.music.play(-1)
@@ -644,8 +662,7 @@ def main_game(category, username):
         value = b["text"]
         if question_counter >= len(correct_answers): 
             return 
-            print(f"⚠️ Error: question_counter ({question_counter}) exceeded question limit!")
-
+            
         if value == correct_answers[question_counter]:  
             question_counter += 1  
 
@@ -678,7 +695,7 @@ def main_game(category, username):
                     finally:
                         root.deiconify()
 
-                    if final_minigame_score >= 5:
+                    if final_minigame_score >= 10:
                         break  
                     final_minigame_lives -= 1
 
@@ -731,7 +748,7 @@ def main_game(category, username):
                 Label(root2, text=f"Time Spent: {time_spent} sec", font=("arial", 20, "bold"), bg='black', fg="white").pack()
                 Label(root2, text=f"Lives Used: {lives_used}", font=("arial", 20, "bold"), bg='black', fg="white").pack()
 
-                Button(root2, text="Play Again", command=playagain).pack()
+                #Button(root2, text="Play Again", command=playagain).pack()
                 Button(root2, text="Close", command=close).pack()
 
                 root2.mainloop()
@@ -750,16 +767,34 @@ def main_game(category, username):
             def close():
                 root1.destroy()
 
+
+
             def tryagain():
-                root1.destroy()
+                """Resets the game properly so the player can restart from question 1"""
+                nonlocal question_counter  # ✅ Ensure it modifies the correct question_counter
+                root1.destroy()  # Close 'You Lost' window
+                question_counter = 0  # ✅ Reset question counter
+
+                # ✅ Ensure UI is fully reset
                 questionArea.delete(1.0, END)
-                questionArea.insert(END, question[0])
-                optionButton1.config(text=First_options[0])
-                optionButton2.config(text=Second_options[0])
-                optionButton3.config(text=Third_options[0])
-                optionButton4.config(text=Fourth_options[0])
-                amountLabel.config(image=amountImages[0])
-                resume_quiz()
+                questionArea.insert(END, question[question_counter])
+
+                optionButton1.config(text=First_options[question_counter])
+                optionButton2.config(text=Second_options[question_counter])
+                optionButton3.config(text=Third_options[question_counter])
+                optionButton4.config(text=Fourth_options[question_counter])
+
+                amountLabel.config(image=amountImages[question_counter])  # Reset prize money tracker
+
+                resume_quiz()  # ✅ Restart background music if stopped
+
+               
+
+
+
+
+            
+
 
             root1 = Toplevel()
             root1.config(bg="black")
@@ -770,9 +805,11 @@ def main_game(category, username):
             loseLabel.pack(pady=20)
 
             Button(root1, text="Try Again", command=tryagain).pack()
-            Button(root1, text="Close", command=close).pack()
+            #Button(root1, text="Close", command=close).pack()
 
             root1.mainloop()
+
+
 
 
 
@@ -2107,56 +2144,82 @@ def main_game(category, username):
     optionButton4.bind('<Button-1>', select)
     
 
-  
 
 
-    def exit_game():
-        if messagebox.askokcancel("Exit", "Are you sure you want to exit the game?"):
-            if mixer.get_init():  # Ensure mixer is initialized before stopping music
-                mixer.music.stop()
+    # 🚀 **Quiz Timer Label**
+    quiz_label = tk.Label(root, text="Time Left: 01:00", font=("Arial", 16), bg="red", fg="white")
+    quiz_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+    # Global variable to store timer event ID
+    timer_event = None  
+
+    # 🚪 **Exit Function**
+    #username = "Player1"  
+
+    def safe_exit():
+        """Safely close the quiz and return to category selection."""
+        global timer_event
+
+        # ✅ Cancel the timer event before closing
+        if 'timer_event' in globals() and timer_event:
+            try:
+                root.after_cancel(timer_event)  
+            except Exception as e:
+                print(f"Warning: Failed to cancel timer - {e}")
+
+        # ✅ Check if mixer is initialized before stopping music
+        if pygame.mixer.get_init():
+            try:
+                pygame.mixer.music.stop()
+            except pygame.error:
+                pass  # Ignore if music is not playing
+
+        # ✅ Quit the mixer to ensure clean reinitialization
+        pygame.mixer.quit()
+
+        # ✅ Ensure root exists before destroying
+        if root.winfo_exists():
             root.destroy()
-            
-            show_category_selection(username)
-    
-    def start_timer(duration):
-        while duration:
-            mins, secs = divmod(duration, 60)
-            timeformat = '{:02d}:{:02d}'.format(mins, secs)
-            timer_label.config(text=timeformat)
-            root.update()
-            time.sleep(1)
-            duration -= 1
-        messagebox.showinfo("Time's up", "Time is up, returning to category selection.")
-        mixer.music.stop()
-        root.destroy()
-        # Optionally, you can also return to the category selection window
+
+        # ✅ Open category selection
         show_category_selection(username)
-   
-
-    # Set the default style to have a red background
-    root.style = ttk.Style()
-    root.style.configure(".", background="red", foreground="black")
 
 
-
-    exit_button = Button(root, text="Exit", bg="red", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=190, command=exit_game)
+    exit_button = tk.Button(root, text="Exit", bg="red", fg="white", bd=0,
+                            activebackground="red", activeforeground='white',
+                            cursor="hand2", wraplength=190, 
+                            command=safe_exit)
     exit_button.grid(row=0, column=4, sticky="ne", padx=10, pady=10)
 
 
-   
 
- 
-    # Create a label to display the timer
-    timer_label = ttk.Label(root, text="00:00", font=("Arial", 16), background="red", foreground="white")
-    timer_label.grid(row=0, column=0, padx=10, pady=10)
+    # ⏳ **Timer Function**
+    def start_timer(duration):
+        """Update the timer label every second and exit when time is up."""
+        global timer_event
+        if duration > 0:
+            mins, secs = divmod(duration, 60)  # Divide by 60 for proper minutes and seconds
+            timeformat = f"Time Left: {mins:02d}:{secs:02d}"
+            quiz_label.config(text=timeformat)
+            timer_event = root.after(1000, start_timer, duration - 1)  # ✅ Save event ID for cancellation
+        else:
+            messagebox.showinfo("Time's up", "Time is up, returning to category selection.")
+            safe_exit()  
 
-    start_button=Button(root, text="Start Timer", font=("arial",10,"bold"),bg="green", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=lambda: start_timer(60))
-    start_button.grid(row=1, column=0, padx=10, pady=5)
+    # 🔥 **Start Timer Automatically**
+    start_timer(120)  
 
-
-
+    # 🏁 **Run Tkinter Main Loop**
+    
     root.mainloop()
 
+# testquiz.py
+remaining_time = 60  # Define globally
+
+
+
+
+    
 
 
 create_login_window()
@@ -2164,13 +2227,3 @@ create_login_window()
 
 
     
-
-
-
-
-
-
-
-
-
-

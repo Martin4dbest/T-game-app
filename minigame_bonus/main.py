@@ -13,8 +13,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.join(BASE_DIR, "images")  # Now correctly points to minigame_bonus/images
 
 # Screen settings
-WIDTH, HEIGHT = 1000, 700
+WIDTH, HEIGHT = 1000, 800
 win = pygame.display.set_mode((WIDTH, HEIGHT))
+
+
 pygame.display.set_caption("Terry G's Ultimate Runner 🏃🏳‍⚡")  
 
 # Load and play background music
@@ -99,36 +101,37 @@ class Player:
 
     def move(self):
         keys = pygame.key.get_pressed()
+        
+        #ground_level = HEIGHT - self.height - 50  # Prevents player from sinking below
+        ground_level = HEIGHT - self.height  # Strict ground limit
 
         # Jumping with up arrow
-        if keys[pygame.K_UP]:  # Allow jumping anytime (not just on the ground)
+        if keys[pygame.K_UP] and self.y > self.max_jump_height:  # Only jump if not already at max height
             self.y -= self.jump_speed
-            if self.y <= self.max_jump_height:  # Stop jumping at max height
-                self.y = self.max_jump_height
-            self.falling = False  # Reset falling state when jumping
-            self.jumping = True  # Set jumping state when moving up
+            self.jumping = True
+            self.falling = False  # Reset falling state
 
         # Falling with down arrow
-        if keys[pygame.K_DOWN]:  # Allow falling anytime
+        if keys[pygame.K_DOWN] and self.y < ground_level:  # Only fall if above ground
             self.y += self.fall_speed
-            self.falling = True  # Set falling state when moving down
-            self.jumping = False  # Reset jumping state when falling
+            self.falling = True
+            self.jumping = False  # Reset jumping state
 
         # Sliding with forward arrow (right arrow key)
-        if keys[pygame.K_RIGHT] and self.is_on_ground:  # Only slide if on the ground
+        if keys[pygame.K_RIGHT] and self.is_on_ground:  
             self.is_sliding = True
         else:
             self.is_sliding = False
 
-        # Ensure the player doesn't go above the maximum jump height
+        # Ensure the player doesn't go above the max jump height
         if self.y < self.max_jump_height:
             self.y = self.max_jump_height
-            self.jumping = False  # Reset jumping state when at max height
+            self.jumping = False  # Stop jumping when reaching max height
 
-        # Ensure the player doesn't go below the screen bounds
-        if self.y > HEIGHT - self.height:  # Prevent player from going below the screen
-            self.y = HEIGHT - self.height
-            self.falling = False  # Reset falling state when at the bottom
+        # Ensure the player doesn't go below the ground level
+        if self.y > ground_level:
+            self.y = ground_level
+            self.falling = False  # Stop falling when hitting the ground
 
         # Update hitbox position
         if self.is_sliding:
@@ -138,7 +141,6 @@ class Player:
 
     def draw(self, win):
         if self.is_sliding:
-            # Draw a smaller hitbox for sliding
             win.blit(pygame.transform.scale(self.image, (self.width, self.height // 2)), (self.x, self.y + self.height // 2))
         else:
             win.blit(self.image, (self.x, self.y))  # Draw the player image
@@ -341,11 +343,13 @@ def redraw_window(question_number):
     text = font.render(f"Score: {score}", True, (0, 0, 0))
     win.blit(text, (10, 10))
     
-    max_time = 60 if question_number == 15 else 40
-    lives = 2 if question_number == 15 else 1
+    max_time = 120 if question_number == 15 else 30
+    lives = 3 if question_number == 15 else 1
 
     elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-    remaining_time = max_time - elapsed_time
+    #remaining_time = max_time - elapsed_time
+    remaining_time = max(0, max_time - elapsed_time)
+
     
     timer_text = font.render(f"Time: {remaining_time}s", True, (255, 0, 0))
     lives_text = font.render(f"Lives: {lives}", True, (255, 0, 0))
@@ -353,6 +357,8 @@ def redraw_window(question_number):
     win.blit(lives_text, (650, 50))
     
     pygame.display.update()
+
+
 
 def end_screen(question_number, score, success=False):
     global win
@@ -375,28 +381,37 @@ def end_screen(question_number, score, success=False):
         win.blit(target_text, (300, 300))
         win.blit(question_text, (300, 350))
         pygame.display.update()
-        pygame.time.delay(5000)
+        pygame.time.delay(8000)
     
     pygame.display.quit()
     return score
+
+
 
 def start_game(question_number):
     global win, speed, score, runner, obstacles, pause, fallSpeed, bgX, bgX2, balls, lives, start_ticks
     
     if question_number % 3 != 0:
         return 0  
-    
+
     pygame.init()
     pygame.mixer.init()
-    win = pygame.display.set_mode((800, 600))
+    
+    # Set screen size dynamically to ensure consistency across minigame stages
+    if question_number < 6:
+        win = pygame.display.set_mode((1200, 800))  # Use this for first minigame
+    else:
+        win = pygame.display.set_mode((1200, 800), pygame.RESIZABLE)  # Maintain same size but allow resizing
+
     pygame.display.set_caption(f"Minigame - Question {question_number}")
     
     pygame.time.set_timer(pygame.USEREVENT + 1, 500)
-    pygame.time.set_timer(pygame.USEREVENT + 2, 3000)
-    pygame.time.set_timer(pygame.USEREVENT + 3, 2000)
+    pygame.time.set_timer(pygame.USEREVENT + 2, 2500)  # Obstacle spawn rate
+    pygame.time.set_timer(pygame.USEREVENT + 3, 1800)  # Ball spawn rate
     
     speed = 30
     score = 0
+    lives = 1  
     runner = Player(200, 313, 64, 64)
     obstacles = []
     balls = []
@@ -413,28 +428,44 @@ def start_game(question_number):
     target_score = 10 if question_number == 15 else 5
     allow_continuation = question_number in [3, 6, 9, 12]
     
+    if question_number == 15:
+        remaining_time = 120
+    elif question_number in [3, 6, 9, 12]:  
+        remaining_time = 30
+    else:
+        remaining_time = 20
+
     while run:
         clock.tick(speed)
         elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-        remaining_time = 60 if question_number == 15 else 40
         
         if elapsed_time >= remaining_time:
+            if question_number == 15 and score < target_score and lives == 0:
+                show_compensation_message()
+                return  # Ensure game exits instead of lingering
             return end_screen(question_number, score, success=True)
         
-        if not allow_continuation and score >= target_score:
+        if not allow_continuation and score >= target_score and elapsed_time >= remaining_time:
             return end_screen(question_number, score, success=True)
         
-        score = speed // 10 - 3
-        
+        score = (speed // 8) - 2  # Score increases slightly faster than before
+
+
         for obstacle in obstacles[:]:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
+                lives -= 1
+                if lives == 0 and question_number == 15 and score < target_score:
+                    return show_compensation_message()
                 return end_screen(question_number, score)
         
         for ball in balls[:]:
             if ball.y > runner.y - 100:
                 ball.move()
             if ball.collide(runner.hitbox):
+                lives -= 1
+                if lives == 0 and question_number == 15 and score < target_score:
+                    return show_compensation_message()
                 return end_screen(question_number, score)
         
         for event in pygame.event.get():
@@ -443,20 +474,100 @@ def start_game(question_number):
             if event.type == pygame.USEREVENT + 1:
                 speed += 1
             if event.type == pygame.USEREVENT + 2:
-                obstacles.append(Saw(810, 310) if random.choice([True, False]) else Spike(810, 0))
+                obstacle_y = random.choice([0, 310, random.randint(50, 250), random.randint(350, 550)])
+                obstacle_x = random.choice([810, random.randint(50, 750)])
+                obstacle_type = random.choice([Saw, Spike, HotWater, Triangle, Star])
+                size_multiplier = random.choice([1, 1.5, 2])  
+
+                new_obstacle = obstacle_type(obstacle_x, obstacle_y)
+                
+                if isinstance(new_obstacle, Spike):
+                    new_obstacle.height = min(new_obstacle.height * size_multiplier, 120)  # Max height limit
+                
+                new_obstacle.width *= size_multiplier
+                obstacles.append(new_obstacle)
+                
+                if random.random() < 0.15:  
+                    surprise_x = runner.x + random.randint(200, 300)
+                    surprise_obstacle = obstacle_type(surprise_x, runner.y)
+                    surprise_obstacle.active = False  
+                    surprise_obstacle.activation_time = pygame.time.get_ticks() + 6000 
+                    obstacles.append(surprise_obstacle)
+
             if event.type == pygame.USEREVENT + 3:
-                balls.append(Ball(810, -100, random.randint(20, 40), (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
+                ball_x = random.randint(200, 600)  
+                ball_y = -50  
+                balls.append(Ball(ball_x, ball_y, random.randint(20, 40), (0, 255, 0) if random.choice([True, False]) else (255, 255, 0)))
         
+        current_time = pygame.time.get_ticks()
+        for obs in obstacles:
+            if hasattr(obs, 'activation_time') and not obs.active:
+                if current_time >= obs.activation_time:
+                    obs.active = True  
+
+        # **✅ Fixed Movement Logic (Continuous Backward Movement)**
         keys = pygame.key.get_pressed()
         if not runner.falling:
-            if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
+            if keys[pygame.K_SPACE] or keys[pygame.K_UP]:  
                 if not runner.jumping:
                     runner.jumping = True
-            if keys[pygame.K_DOWN]:
+            if keys[pygame.K_DOWN]:  
                 runner.sliding = True
-        
+            if keys[pygame.K_RIGHT]:  
+                runner.x += 5  # Move forward
+            if keys[pygame.K_LEFT]:  
+                runner.x -= 5  # Move backward continuously
+
+        # **✅ Prevent Player from Moving Out of Screen**
+        runner.x = max(0, min(runner.x, 800 - runner.width))
+
         runner.move()
         redraw_window(question_number)
     
     pygame.quit()
     return 0
+
+
+
+
+# Global counter to track how many times the player has lost
+loss_count = 0  
+
+def show_compensation_message():
+    """Displays a different message based on how many times the player has lost."""
+    global loss_count  
+
+    win.fill((0, 0, 0))  
+    font = pygame.font.Font(None, 36)
+
+    messages = [
+        "Sorry, you lost, but you still have 2 lives left. Try again!",
+        "Oops, you lost another life. You have one life left after this, so try!",
+        "Great job getting this far! You can cash out, but you didn't make the leaderboard."
+    ]
+
+    # Ensure we don't go beyond the message list
+    message = messages[min(loss_count, len(messages) - 1)]
+
+    text = font.render(message, True, (255, 255, 255))
+    text_rect = text.get_rect(center=(win.get_width() // 2, win.get_height() // 2))
+    win.blit(text, text_rect)
+    pygame.display.update()
+    
+    pygame.time.delay(5000)  # Show message for 5 seconds
+
+    win.fill((255, 255, 255))  # Clear screen
+    pygame.display.update()
+
+    # Increase loss count for the next time this function is called
+    loss_count += 1  
+
+    # Quit pygame if it's the last message
+    if loss_count >= len(messages):
+        pygame.quit()
+
+    return 0  # Return 0 after displaying the message
+
+
+
+

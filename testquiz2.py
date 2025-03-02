@@ -16,13 +16,30 @@ from tkinter import Tk, Entry, Label, Button, messagebox
 from tkinter import PhotoImage
 import tkinter.simpledialog as simpledialog
 import time
+from threading import Thread
+
+from PIL import Image as PilImage, ImageTk
+
+#from minigame_bonus.main import start_game
 
 
-from minigame_bonus.main import start_game
+from tkinter import Toplevel, Label, Button, simpledialog, END
+import os
+
+
+import pygame
+from pygame import mixer
+
+pygame.init()  
+mixer.init()
 
 
 
 
+try:
+    mixer.init()
+except pygame.error as e:
+    print(f"Error initializing mixer: {e}")
 
 #create database
 
@@ -50,18 +67,22 @@ def update_amount_won(username, amount):
     conn.close()
 
     
+import sqlite3
 
-def register_user(username, password):
+def register_user(username, password, avatar_path):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
+
     try:
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        c.execute("INSERT INTO users (username, password, avatar_path) VALUES (?, ?, ?)", 
+                  (username, password, avatar_path))
         conn.commit()
-        conn.close()
         return True
     except sqlite3.IntegrityError:
-        conn.close()
         return False
+    finally:
+        conn.close()  # Ensures connection closes even if an error occurs
+
 
 def username_exists(username):
     conn = sqlite3.connect("users.db")
@@ -82,34 +103,40 @@ def authenticate_user(username, password):
     else:
         return None
 
+
+
 def create_leaderboard_table():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute('''DROP TABLE IF EXISTS leaderboard''')  # Drop the existing table if it exists
-    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard
-                 (username TEXT , amount_won REAL, category_played TEXT)''')  # Recreate the table with the updated schema
+    c.execute('''DROP TABLE IF EXISTS leaderboard''')  # This deletes the table on every run
+    
+    # ✅ Added avatar_path column
+    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT, 
+                    amount_won REAL DEFAULT 0, 
+                    category_played TEXT, 
+                    minigame_score INTEGER DEFAULT 0, 
+                    time_spent REAL DEFAULT 0, 
+                    lives_used INTEGER DEFAULT 0,
+                    avatar_path TEXT DEFAULT 'avatars/default_avatar.png'
+                )''')  # Now includes avatar_path
+    
     conn.commit()
     conn.close()
 
-
+# Call function to recreate table with the new structure
 create_leaderboard_table()
 
-def update_leaderboard(username, amount_won, category_played):
+
+def update_leaderboard(username, amount_won, category_played, minigame_score=0, time_spent=0, lives_used=0, avatar_path="avatars/default_avatar.png"):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
 
-    # Check if the username already exists in the leaderboard table
-    c.execute("SELECT * FROM leaderboard WHERE username = ?", (username,))
-    existing_user = c.fetchone()
-
-    if existing_user:
-        # If the username exists, update the amount won
-        updated_amount_won = existing_user[1] + amount_won
-        c.execute("UPDATE leaderboard SET amount_won = ? WHERE username = ?", (updated_amount_won, username))
-    else:
-        # If the username doesn't exist, insert a new row
-        #c.execute("INSERT INTO leaderboard (username, amount_won, category_played) VALUES (?, ?, ?)", (username,category_played, amount_won, ))
-        c.execute("INSERT INTO leaderboard (username, amount_won, category_played) VALUES (?, ?, ?)", (username, amount_won, category_played))
+    c.execute('''INSERT INTO leaderboard 
+                 (username, amount_won, category_played, minigame_score, time_spent, lives_used, avatar_path) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+              (username, amount_won, category_played, minigame_score, time_spent, lives_used, avatar_path))
 
     conn.commit()
     conn.close()
@@ -118,91 +145,169 @@ def update_leaderboard(username, amount_won, category_played):
 
 
 
-def complete_category(username, category_played):
-    # Call this function when a user completes a category
-    update_leaderboard(username, 100000000, category_played)  # Update the leaderboard for the logged-in user
+
+def complete_category(username, category_played, time_spent=5, lives_used=1):
+    """Call this function when a user completes a category"""
+    update_leaderboard(username, 100000000, category_played, minigame_score=10, time_spent=time_spent, lives_used=lives_used)
 
 
+
+
+
+import os
+import sqlite3
+import tkinter as tk
+from tkinter import ttk
+from PIL import Image as PilImage, ImageTk
 
 def show_leaderboard():
     leaderboard_window = tk.Toplevel()
     leaderboard_window.title("Leaderboard")
-    leaderboard_window.geometry("1430x1430")
+    leaderboard_window.geometry("1200x600")
 
-    
-    #frame = tk.Frame(leaderboard_window, bg="green")
-    #frame.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-        # Create a frame with a colored background
-    background_frame = tk.Frame(leaderboard_window, bg="green")
+    background_frame = tk.Frame(leaderboard_window, bg="#1a1a2e")
     background_frame.pack(fill="both", expand=True)
 
-    # Create a frame to contain the leaderboard table
-    frame = tk.Frame(background_frame, bg="lightyellow", width=1000, height=800)
+    frame = tk.Frame(background_frame, bg="white", width=1100, height=500, relief="ridge", bd=5)
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    frame.config(width=1200, height=900) 
-
-
-    # Retrieve leaderboard data from the database
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute("SELECT username, category_played, amount_won FROM leaderboard ORDER BY amount_won DESC")
+    c.execute("SELECT avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used FROM leaderboard ORDER BY amount_won DESC")
     leaderboard_data = c.fetchall()
     conn.close()
 
-    # Create a table to display leaderboard data
-    table = ttk.Treeview(frame, columns=("Username", "Category Played", "Amount Won"))
-    table.heading("#0", text="Rank")
-    table.heading("Username", text="THE CHAMPIONS")
-    table.heading("Amount Won", text="Amount Won")
-    table.heading("Category Played", text="Category Played")  # Fixed typo here
-   
-    for i, (username, category_played, amount_won) in enumerate(leaderboard_data, start=1):
-        table.insert("", "end", text=str(i), values=(username, category_played, amount_won))
+    columns = ("Avatar", "Username", "Category Played", "Amount Won", "Minigame Score", "Time Spent(s)", "Lives Used")
+    table = ttk.Treeview(frame, columns=columns, show="headings", height=10)
 
-    table.pack(expand=True, fill="both")
+    style = ttk.Style()
+    style.configure("Treeview", font=("Helvetica", 12), rowheight=50)
+    style.configure("Treeview.Heading", font=("Helvetica", 14, "bold"), foreground="gold")
+
+    for col in columns:
+        table.heading(col, text=col)
+
+    column_widths = [100, 150, 200, 150, 150, 150, 150]
+    for col, width in zip(columns, column_widths):
+        table.column(col, width=width, anchor="center")
+
+    default_avatar_path = os.path.join("avatars", "vac.png")
+    avatars_frame = tk.Frame(frame, bg="white")
+    avatars_frame.place(x=10, y=50)
+    avatars_cache = {}
+
+    for i, (avatar_path, username, category_played, amount_won, minigame_score, time_spent, lives_used) in enumerate(leaderboard_data, start=1):
+        table.insert("", "end", values=("", username, category_played, amount_won, minigame_score, time_spent, lives_used))
+
+        if avatar_path and not avatar_path.startswith("avatars/"):
+            avatar_path = os.path.join("avatars", avatar_path)
+        
+        if not avatar_path or not os.path.exists(avatar_path):
+            avatar_path = default_avatar_path
+
+        try:
+            image = PilImage.open(avatar_path)
+            image = image.resize((50, 50))
+            avatar_img = ImageTk.PhotoImage(image)
+            avatars_cache[username] = avatar_img
+
+            avatar_label = tk.Label(avatars_frame, image=avatar_img, bg="white")
+            avatar_label.image = avatar_img
+            avatar_label.grid(row=i, column=0, padx=5, pady=2)
+        except Exception as e:
+            print(f"Error loading avatar for {username}: {e}")
+
+    table.pack(expand=True, fill="both", padx=20, pady=20)
+    leaderboard_window.mainloop()
+
+if not os.path.exists("avatars"):
+    os.makedirs("avatars")
 
 
 
-"""
 
-def delete_records():
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-
-    # Delete records based on a condition (example: delete all records with amount_won less than 1000)
-    c.execute("DELETE FROM leaderboard WHERE amount_won < ?", (10000000,))
-
-    # Alternatively, you can delete all records from the table
-    # c.execute("DELETE FROM leaderboard")
-
-    conn.commit()
-    conn.close()
-
-# Call the delete_records function to delete records from the leaderboard table
-delete_records()
-
-"""
+import shutil
+from tkinter import filedialog, messagebox
+import os
+import shutil
+from tkinter import filedialog, messagebox
+import sqlite3
 
 def register():
     username = username_entry.get()
     password = password_entry.get()
+
     if not username or not password:
         messagebox.showerror("Error", "Please enter a username and password.")
         return
+
     if len(password) < 6 or not password.isalnum():
         messagebox.showerror("Error", "Password must be alphanumeric and at least 6 characters long.")
         return
+
     if username_exists(username):
         messagebox.showerror("Error", "Username already exists. Please choose a different username.")
         return
-    if register_user(username, password):
+
+    # Ensure the avatars directory exists
+    avatar_dir = "avatars"
+    os.makedirs(avatar_dir, exist_ok=True)
+
+    # Open file dialog for profile picture
+    file_path = filedialog.askopenfilename(title="Select Profile Picture", filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+
+    if file_path:
+        # Define the new location for the image
+        new_avatar_path = os.path.join(avatar_dir, f"{username}.png")
+        if not os.path.exists(new_avatar_path):  # Avoid overwriting
+            shutil.copy(file_path, new_avatar_path)
+    else:
+        # If no image is uploaded, set a default avatar
+        default_avatar = os.path.join(avatar_dir, "vac.png")
+        if not os.path.exists(default_avatar):
+            messagebox.showwarning("Warning", "Default avatar not found. Please upload an image.")
+            return
+        new_avatar_path = default_avatar
+
+    # Register user in the database
+    if register_user(username, password, new_avatar_path):
         messagebox.showinfo("Success", "Registration successful. You can now log in.")
     else:
         messagebox.showerror("Error", "Failed to register user.")
 
-category_window = None  
+
+import os
+import sqlite3
+
+def register_user(username, password, avatar_path=None):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+
+    # Ensure the avatars directory exists
+    if not os.path.exists("avatars"):
+        os.makedirs("avatars")
+
+    # If no avatar is uploaded, use a default avatar
+    if avatar_path is None or not os.path.exists(avatar_path):
+        avatar_path = "avatars/default_avatar.png"
+    else:
+        # Save the uploaded avatar with a unique name
+        new_avatar_path = f"avatars/{username}.png"
+        os.rename(avatar_path, new_avatar_path)
+        avatar_path = new_avatar_path  # Update path to store in DB
+
+    try:
+        c.execute("INSERT INTO users (username, password, avatar_path) VALUES (?, ?, ?)", 
+                  (username, password, avatar_path))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()  # Ensure the database connection closes properly
+
+# Initialize category_window
+category_window = None
 
 
 def logout():
@@ -337,6 +442,36 @@ def create_leaderboard_table():
 
 
 
+def show_rules():
+    """Opens a new window displaying the game rules."""
+    rules_window = tk.Toplevel(category_window)
+    rules_window.title("Game Rules")
+    rules_window.geometry("400x300")
+    rules_window.configure(bg="black")
+
+    rules_text = """🎉 Welcome to the Ultimate Challenge! 🎮
+
+🔥 Rules of the Game:
+
+1️⃣ ✅ Answer questions correctly to move forward!
+2️⃣ ❌ Wrong answers? Get ready for unexpected challenges!
+3️⃣ 🎲 Minigames will pop up at random—stay sharp!
+4️⃣ 🏆 Complete challenges to keep your streak alive!
+5️⃣ 🎯 Enjoy, have fun, and give it your best shot!
+
+Let’s see if you have what it takes! 🚀💡
+"""
+
+    text_widget = tk.Text(rules_window, wrap="word", fg="white", bg="black", font=("Segoe UI Emoji", 12))
+    text_widget.insert("1.0", rules_text)
+    text_widget.config(state="disabled")  
+    text_widget.pack(pady=10, padx=10)
+
+    back_button = tk.Button(rules_window, text="Back", command=rules_window.destroy, bg="red", fg="white", 
+                            font=("Arial", 10, "bold"))
+    back_button.pack(pady=10)
+
+
 
 def show_category_selection(username):
     global category_window
@@ -350,20 +485,21 @@ def show_category_selection(username):
     img_label.configure(bg="black")
     img_label.pack()
 
-        # Create a button to show the leaderboard
-    #leaderboard_button = tk.Button(category_window, text="Leaderboard", command=show_leaderboard)
-    #eaderboard_button.pack(pady=(20, 5))
-
-        # Create the leaderboard button
-    leaderboard_button = Button(category_window, text="Leaderboard", font=("arial",10,"bold"), bg="green", fg="white", bd=0, activebackground="blue", activeforeground='black', cursor="hand2", wraplength=130, command=show_leaderboard)
+    leaderboard_button = Button(category_window, text="Leaderboard", font=("arial",10,"bold"), 
+                                bg="green", fg="white", bd=0, activebackground="blue", 
+                                activeforeground='black', cursor="hand2", wraplength=130, 
+                                command=show_leaderboard)
     leaderboard_button.pack(pady=(20, 5))
 
+    # Create Game Rules Button
+    rules_button = Button(category_window, text="Game Rules", font=("arial",10,"bold"), 
+                          bg="blue", fg="white", bd=0, activebackground="lightblue", 
+                          activeforeground='black', cursor="hand2", wraplength=130, 
+                          command=show_rules)
+    rules_button.pack(pady=(5, 10))
 
-
-
-
-    categories = ["GENERAL KNOWLEDGE", "GEOGRAPHY", "HISTORY", "LITERATURE", "MUSIC", "POP CULTURE", "SPORT", "COMPUTER SCIENCE", "RIDDLES", "SCIENCE AND TECHNOLOGY"]
-
+    categories = ["GENERAL KNOWLEDGE", "GEOGRAPHY", "HISTORY", "LITERATURE", "MUSIC", 
+                  "POP CULTURE", "SPORT", "COMPUTER SCIENCE", "RIDDLES", "SCIENCE AND TECHNOLOGY"]
 
     def start_game_with_category(category, username):
         global category_window
@@ -372,35 +508,38 @@ def show_category_selection(username):
         if score == 15:  # Assuming the score is 15 when the user completes the category
             complete_category(category)
 
-
     category_frame = ttk.Frame(category_window)
     category_frame.pack()
    
-
     row = 0
     col = 0
     for category in categories:
-        #button = ttk.Button(category_frame, text=category, command=lambda cat=category: start_game_with_category(cat))
-        button =Button(category_frame, text=category, font=("arial",10,"bold"), width=20, height=2, bg="green", fg="white",bd=0,activebackground="blue",activeforeground='black',cursor="hand2",wraplength=130,command=lambda cat=category: start_game_with_category(cat, username))
+        button = Button(category_frame, text=category, font=("arial",10,"bold"), 
+                        width=20, height=2, bg="green", fg="white", bd=0, 
+                        activebackground="blue", activeforeground='black', 
+                        cursor="hand2", wraplength=130, 
+                        command=lambda cat=category: start_game_with_category(cat, username))
         button.grid(row=row, column=col, padx=20, pady=10)
         col += 1
         if col > 2:  # 3 columns
             col = 0
             row += 1
 
-    logout_button=Button(category_window, text= "logout",font=("arial",16,"bold"),bg="red", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=logout)#width=20)
-    logout_button.place(x=20, y=20)
+    logout_button = Button(category_window, text="Logout", font=("arial",16,"bold"), 
+                           bg="red", fg="white", bd=0, activebackground="red", 
+                           activeforeground='white', cursor="hand2", wraplength=130, 
+                           command=logout)
     logout_button.pack(pady=(80, 50)) 
 
-
-        # Create exit button
-
-    exit_button=Button(category_window, text= "exit",font=("arial",16,"bold"),bg="black", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=exit_game)#width=20)
-    exit_button.place(x=20, y=20)
-    
-
+    exit_button = Button(category_window, text="Exit", font=("arial",16,"bold"), 
+                         bg="black", fg="white", bd=0, activebackground="red", 
+                         activeforeground='white', cursor="hand2", wraplength=130, 
+                         command=exit_game)
+    exit_button.pack(pady=10)
 
     category_window.mainloop()
+
+
 
 
 def create_login_window():
@@ -458,110 +597,151 @@ def create_login_window():
 
     root.mainloop()
 
+    
+import os
+import sqlite3
+import pyttsx3
+import pygame
+from pygame import mixer
+from tkinter import *
+from tkinter import simpledialog
+
+
+pygame.init() 
+
+mixer.init()
+import time
+
 
 def main_game(category, username):
-    import pyttsx3
-    import sqlite3
-    from tkinter import Toplevel, Label, Button, simpledialog
-    from pygame import mixer
-    
-    # Initialize pyttsx3 engine
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
     engine.setProperty("voice", voices[0].id)
-    
-    # Initialize mixer and play background music
-    mixer.init()
-    mixer.music.load("kbc.mp3")
-    mixer.music.play(-1)  
-    
-    question_counter = 0  # Initialize question counter
-    
+
+    quiz_music = "kbc.mp3"
+    if not pygame.mixer.get_init():  
+        pygame.mixer.init()  # ✅ Reinitialize before playing music
+
+    if os.path.exists(quiz_music):
+        mixer.music.load(quiz_music)
+        mixer.music.play(-1)
+    else:
+        print("Warning: kbc.mp3 file not found!")
+
+    question_counter = 0  
+    final_minigame_lives = 3  
+
+    def resume_quiz():
+        """Resumes quiz background music after minigame"""
+        if mixer.get_init():
+            mixer.music.stop()
+            if os.path.exists(quiz_music):
+                mixer.music.load(quiz_music)
+                mixer.music.play(-1)
+
     def select(event):
-        nonlocal question_counter  # Ensure we modify the outer scope variable
-        callButtton.place_forget()
-        progressBarA.place_forget()
-        progressBarB.place_forget()
-        progressBarC.place_forget()
-        progressBarD.place_forget()
-        
-        progressbarLabelA.place_forget()
-        progressbarLabelB.place_forget()
-        progressbarLabelC.place_forget()
-        progressbarLabelD.place_forget()
-        
+        final_minigame_score = 0  # Default value
+        """Handles answer selection, minigame transitions, and quiz progression"""
+        nonlocal question_counter, final_minigame_lives
+
         b = event.widget
         value = b["text"]
-        
-        # Check if answer is correct
-        if value == correct_answers[question_counter]:
-            question_counter += 1  # Increment question count
-            
-            # If final question is correct
-            if question_counter == 15:
+        if question_counter >= len(correct_answers): 
+            return 
+            print(f"⚠️ Error: question_counter ({question_counter}) exceeded question limit!")
+
+        if value == correct_answers[question_counter]:  
+            question_counter += 1  
+
+            # 🎮 Switch to minigame at checkpoints
+            if question_counter in [3, 6, 9, 12]:
+                root.withdraw()  # Hide quiz window
+                if not pygame.get_init(): 
+                    pygame.init()
+                from minigame_bonus.main import start_game
+                start_game(question_counter) 
+                
+                root.deiconify()
+                root.after(1000, resume_quiz)  # Resume quiz music
+
+            # 🎉 Handle quiz completion
+            if question_counter == 15:  
+                if mixer.get_init():
+                    mixer.music.stop()
+                
+                # 🏆 Final minigame for winning prize
+                start_time = time.time()  # Track minigame start time
+
+                while final_minigame_lives > 0:
+                    root.withdraw()
+                    try:
+                        from minigame_bonus.main import start_game
+                        final_minigame_score = start_game(question_counter)
+                    except Exception as e:
+                        break
+                    finally:
+                        root.deiconify()
+
+                    if final_minigame_score >= 10:
+                        break  
+                    final_minigame_lives -= 1
+
+                end_time = time.time()  # Track minigame end time
+                time_spent = round(end_time - start_time, 2)  # Time spent in seconds
+                lives_used = 3 - final_minigame_lives  # Calculate lives used
+
+                if final_minigame_lives == 0:
+                    resume_quiz()
+                    return
+                
+                # 🎊 Record player stats in the leaderboard
+                conn = sqlite3.connect("users.db")
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO leaderboard (username, category_played, amount_won, minigame_score, time_spent, lives_used)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (username, category, 100000000, final_minigame_score, time_spent, lives_used))
+                conn.commit()
+                conn.close()
+
+                # 🎊 Winning screen
                 def close():
                     root2.destroy()
-                    root.destroy()
-                
+
                 def playagain():
-                    lifeline50Button.config(state=NORMAL, image=image50)
-                    audiencePoleButton.config(state=NORMAL, image=audiencePole)
-                    phoneLifeLineButton.config(state=NORMAL, image=phoneImage)
                     root2.destroy()
-                    questionArea.delete(1.0, END)
-                    questionArea.insert(END, question[0])
-                    optionButton1.config(text=First_options[0])
-                    optionButton2.config(text=Second_options[0])
-                    optionButton3.config(text=Third_options[0])
-                    optionButton4.config(text=Fourth_options[0])
-                    
-                    entered_category = simpledialog.askstring("Input", "INPUT CATEGORY PLAYED AND CHECK LEADERBOARD:")
+                    entered_category = simpledialog.askstring("Input", "Enter category and check leaderboard:")
                     if entered_category:
-                        amount_won = 100000000  # Placeholder, replace with actual score data
                         conn = sqlite3.connect("users.db")
                         c = conn.cursor()
                         c.execute("INSERT INTO leaderboard (username, category_played, amount_won) VALUES (?, ?, ?)",
-                                  (username, entered_category, amount_won))
+                                  (username, entered_category, 100000000))
                         conn.commit()
                         conn.close()
-                
-                mixer.music.stop()
-                mixer.music.load("kbcwon.mp3")
-                mixer.music.play()
-                
+
+                if mixer.get_init():
+                    mixer.music.load("kbcwon.mp3")
+                    mixer.music.play()
+
                 root2 = Toplevel()
                 root2.config(bg="black")
-                root2.geometry("500x400+140+30")
-                root2.title("You won 100,000,000 pounds")
-                
-                imgLabel = Label(root2, image=centerImage, bd=0, bg="black")
-                imgLabel.pack(pady=30)
-                
-                tryAgainButton = Button(root2, text="Congratulation! Enter the Category played!!", command=playagain)
-                tryAgainButton.pack()
-                
-                winLabel = Label(root2, text="You Won", font=("arial", 40, "bold"), bg='black', fg="white")
-                winLabel.pack()
-                
-                playagainButton = Button(root2, text="Play Again", font=("arial", 20, "bold"), bg="black", fg="white", command=playagain)
-                playagainButton.pack()
-                
-                closeButton = Button(root2, text="Close", font=("arial", 20, "bold"), bg="black", fg="white", command=close)
-                closeButton.pack()
-                
+                root2.geometry("500x400")
+                root2.title("You Won!")
+
+                winLabel = Label(root2, text="You Won!", font=("arial", 30, "bold"), bg='black', fg="white")
+                winLabel.pack(pady=20)
+
+                Label(root2, text=f"Score: {final_minigame_score}", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+                Label(root2, text=f"Time Spent: {time_spent} sec", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+                Label(root2, text=f"Lives Used: {lives_used}", font=("arial", 20, "bold"), bg='black', fg="white").pack()
+
+                #Button(root2, text="Play Again", command=playagain).pack()
+                Button(root2, text="Close", command=close).pack()
+
                 root2.mainloop()
                 return
             
-            # Every 3 questions, trigger the minigame
-            
-            if question_counter % 15 == 0:
-                mixer.music.stop()
-                start_game()  # Call minigame
-                mixer.music.play(-1)  # Resume background music after minigame
-
-                
-            
-            # Load next question
+            # ✅ Update the UI with the next question
             questionArea.delete(1.0, END)
             questionArea.insert(END, question[question_counter])
             optionButton1.config(text=First_options[question_counter])
@@ -569,46 +749,57 @@ def main_game(category, username):
             optionButton3.config(text=Third_options[question_counter])
             optionButton4.config(text=Fourth_options[question_counter])
             amountLabel.configure(image=amountImages[question_counter])
-            
+        
         else:
             def close():
                 root1.destroy()
-                root.destroy()
-            
+
+
+
             def tryagain():
-                lifeline50Button.config(state=NORMAL, image=image50)
-                audiencePoleButton.config(state=NORMAL, image=audiencePole)
-                phoneLifeLineButton.config(state=NORMAL, image=phoneImage)
-                root1.destroy()
+                """Resets the game properly so the player can restart from question 1"""
+                nonlocal question_counter  # ✅ Ensure it modifies the correct question_counter
+                root1.destroy()  # Close 'You Lost' window
+                question_counter = 0  # ✅ Reset question counter
+
+                # ✅ Ensure UI is fully reset
                 questionArea.delete(1.0, END)
-                questionArea.insert(END, question[0])
-                optionButton1.config(text=First_options[0])
-                optionButton2.config(text=Second_options[0])
-                optionButton3.config(text=Third_options[0])
-                optionButton4.config(text=Fourth_options[0])
-                amountLabel.config(image=amountImages[0])
+                questionArea.insert(END, question[question_counter])
+
+                optionButton1.config(text=First_options[question_counter])
+                optionButton2.config(text=Second_options[question_counter])
+                optionButton3.config(text=Third_options[question_counter])
+                optionButton4.config(text=Fourth_options[question_counter])
+
+                amountLabel.config(image=amountImages[question_counter])  # Reset prize money tracker
+
+                resume_quiz()  # ✅ Restart background music if stopped
+
+               
+
+
+
+
             
+
+
             root1 = Toplevel()
             root1.config(bg="black")
-            root1.geometry("500x400+140+30")
-            root1.title("You won 0 pounds")
-            
-            imgLabel = Label(root1, image=centerImage, bd=0)
-            imgLabel.pack(pady=30)
-            
-            loseLabel = Label(root1, text="You lose", font=("arial", 40, "bold"), bg='black', fg="white")
-            loseLabel.pack()
-            
-            tryagainButton = Button(root1, text="Try Again", font=("arial", 20, "bold"), bg="black", fg="white", command=tryagain)
-            tryagainButton.pack()
-            
-            closeButton = Button(root1, text="Close", font=("arial", 20, "bold"), bg="black", fg="white", command=close)
-            closeButton.pack()
-            
+            root1.geometry("500x400")
+            root1.title("Game Over")
+
+            loseLabel = Label(root1, text="You Lost!", font=("arial", 30, "bold"), bg='black', fg="white")
+            loseLabel.pack(pady=20)
+
+            Button(root1, text="Try Again", command=tryagain).pack()
+            #Button(root1, text="Close", command=close).pack()
+
             root1.mainloop()
 
-    
-    
+
+
+
+
 
 
 
@@ -1940,56 +2131,74 @@ def main_game(category, username):
     optionButton4.bind('<Button-1>', select)
     
 
-  
 
 
-     #exit , music stops playing
-    def exit_game():
-        if messagebox.askokcancel("Exit", "Are you sure you want to exit the game?"):
-            mixer.music.stop()
+    # 🚀 **Quiz Timer Label**
+    quiz_label = tk.Label(root, text="Time Left: 01:00", font=("Arial", 16), bg="red", fg="white")
+    quiz_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+    # Global variable to store timer event ID
+    timer_event = None  
+
+    # 🚪 **Exit Function**
+    #username = "Player1"  
+
+    def safe_exit():
+        """Safely close the quiz and return to category selection."""
+        global timer_event
+
+        # ✅ Cancel the timer event before closing
+        if 'timer_event' in globals() and timer_event:
+            try:
+                root.after_cancel(timer_event)  
+            except Exception as e:
+                print(f"Warning: Failed to cancel timer - {e}")
+
+        # ✅ Check if mixer is initialized before stopping music
+        if pygame.mixer.get_init():
+            try:
+                pygame.mixer.music.stop()
+            except pygame.error:
+                pass  # Ignore if music is not playing
+
+        # ✅ Quit the mixer to ensure clean reinitialization
+        pygame.mixer.quit()
+
+        # ✅ Ensure root exists before destroying
+        if root.winfo_exists():
             root.destroy()
-        # Optionally, you can also return to the category selection window
-            show_category_selection(username)
-    
-    def start_timer(duration):
-        while duration:
-            mins, secs = divmod(duration, 60)
-            timeformat = '{:02d}:{:02d}'.format(mins, secs)
-            timer_label.config(text=timeformat)
-            root.update()
-            time.sleep(1)
-            duration -= 1
-        messagebox.showinfo("Time's up", "Time is up, returning to category selection.")
-        mixer.music.stop()
-        root.destroy()
-        # Optionally, you can also return to the category selection window
+
+        # ✅ Open category selection
         show_category_selection(username)
-   
-
-    # Set the default style to have a red background
-    root.style = ttk.Style()
-    root.style.configure(".", background="red", foreground="black")
 
 
-
-    exit_button = Button(root, text="Exit", bg="red", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=190, command=exit_game)
+    exit_button = tk.Button(root, text="Exit", bg="red", fg="white", bd=0,
+                            activebackground="red", activeforeground='white',
+                            cursor="hand2", wraplength=190, 
+                            command=safe_exit)
     exit_button.grid(row=0, column=4, sticky="ne", padx=10, pady=10)
 
 
-   
-
- 
-    # Create a label to display the timer
-    timer_label = ttk.Label(root, text="00:00", font=("Arial", 16), background="red", foreground="white")
-    timer_label.grid(row=0, column=0, padx=10, pady=10)
-
-    start_button=Button(root, text="Start Timer", font=("arial",10,"bold"),bg="green", fg="white",bd=0,activebackground="red",activeforeground='white',cursor="hand2",wraplength=130, command=lambda: start_timer(60))
-    start_button.grid(row=1, column=0, padx=10, pady=5)
 
 
+    # ⏳ **Timer Function**
+    def start_timer(duration):
+        """Update the timer label every second and exit when time is up."""
+        global timer_event
+        if duration > 0:
+            mins, secs = divmod(duration, 120)
+            timeformat = f"Time Left: {mins:02d}:{secs:02d}"
+            quiz_label.config(text=timeformat)
+            timer_event = root.after(1000, start_timer, duration - 1)  # ✅ Save event ID for cancellation
+        else:
+            messagebox.showinfo("Time's up", "Time is up, returning to category selection.")
+            safe_exit()  
 
+    # 🔥 **Start Timer Automatically**
+    start_timer(120)  
+
+    # 🏁 **Run Tkinter Main Loop**
     root.mainloop()
-
 
 
 create_login_window()
@@ -1997,13 +2206,3 @@ create_login_window()
 
 
     
-
-
-
-
-
-
-
-
-
-
