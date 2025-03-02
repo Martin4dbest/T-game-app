@@ -44,9 +44,3 @@ desktop.ini
 *.xcf
 *.blend
 
-# Ignore screenshots or test images
-screenshots/
-*.png
-*.jpg
-*.jpeg
-*.gif
