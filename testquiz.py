@@ -657,6 +657,20 @@ def main_game(category, username):
         final_minigame_score = 0  # Default value
         """Handles answer selection, minigame transitions, and quiz progression"""
         nonlocal question_counter, final_minigame_lives
+        callButtton.place_forget()
+        progressBarA.place_forget()
+        progressBarB.place_forget()
+        progressBarC.place_forget()
+        progressBarD.place_forget()
+
+
+        progressbarLabelA.place_forget()
+        progressbarLabelB.place_forget()
+        progressbarLabelC.place_forget()
+        progressbarLabelD.place_forget()
+        b=event.widget
+        value=b["text"]
+
 
         b = event.widget
         value = b["text"]
@@ -774,6 +788,7 @@ def main_game(category, username):
                 nonlocal question_counter  # ✅ Ensure it modifies the correct question_counter
                 root1.destroy()  # Close 'You Lost' window
                 question_counter = 0  # ✅ Reset question counter
+                
 
                 # ✅ Ensure UI is fully reset
                 questionArea.delete(1.0, END)
@@ -2105,7 +2120,10 @@ def main_game(category, username):
     labelA = Label(bottomFrame,font=("arial",16,"bold"), text="A: ", bg="black", fg="white",)
     labelA.place(x=60,y=110)
 
-    optionButton1=Button(bottomFrame, text= First_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
+
+    optionButton1=Button(bottomFrame, text= First_options[0], font=("arial",15,"bold"), bg="black", fg="white", bd=0, activebackground="black", activeforeground='white', cursor="hand2", wraplength=130)
+
+
 
     optionButton1.place(x=100, y=100)
 
@@ -2116,8 +2134,13 @@ def main_game(category, username):
 
     labelC = Label(bottomFrame,font=("arial",16,"bold"), text="C: ", bg="black", fg="white",)
     labelC.place(x=60,y=190)
+
+
+
+
     optionButton3=Button(bottomFrame, text= Third_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#,wraplength=200,width=20)
     optionButton3.place(x=100, y=180)
+
     labelD = Label(bottomFrame,font=("arial",16,"bold"), text="D: ", bg="black", fg="white",)
     labelD.place(x=330,y=190)
     optionButton4=Button(bottomFrame, text= Fourth_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
