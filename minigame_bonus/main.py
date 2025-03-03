@@ -340,23 +340,21 @@ def redraw_window(question_number):
     runner.draw(win)
     
     font = pygame.font.SysFont("Arial", 30)
-    text = font.render(f"Score: {score}", True, (0, 0, 0))
-    win.blit(text, (10, 10))
     
-    max_time = 120 if question_number == 15 else 30
-    lives = 3 if question_number == 15 else 1
-
-    elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-    #remaining_time = max_time - elapsed_time
-    remaining_time = max(0, max_time - elapsed_time)
-
+    # Set colors for different texts
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))  # White
+    timer_text = font.render(f"Time: {max(0, (120 if question_number == 15 else 30) - (pygame.time.get_ticks() - start_ticks) // 1000)}s", True, (255, 255, 255))  # White
+    lives_text = font.render("Lives: 3" if question_number == 15 else "Lives: 1", True, (255, 0, 0))  # Red
+    target_text = font.render(f"Target Score: {10 if question_number == 15 else 5}", True, (0, 0, 255))  # Blue
     
-    timer_text = font.render(f"Time: {remaining_time}s", True, (255, 0, 0))
-    lives_text = font.render(f"Lives: {lives}", True, (255, 0, 0))
-    win.blit(timer_text, (650, 10))
-    win.blit(lives_text, (650, 50))
+    # Display text on the screen
+    win.blit(score_text, (10, 10))  
+    win.blit(timer_text, (650, 10))  
+    win.blit(lives_text, (650, 50))  
+    win.blit(target_text, (10, 50))  
     
     pygame.display.update()
+
 
 
 
