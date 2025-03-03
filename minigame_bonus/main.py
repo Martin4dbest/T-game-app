@@ -343,9 +343,9 @@ def redraw_window(question_number):
     
     # Set colors for different texts
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))  # White
-    timer_text = font.render(f"Time: {max(0, (120 if question_number == 15 else 30) - (pygame.time.get_ticks() - start_ticks) // 1000)}s", True, (255, 255, 255))  # White
+    timer_text = font.render(f"Time: {max(0, (120 if question_number == 15 else 40) - (pygame.time.get_ticks() - start_ticks) // 1000)}s", True, (255, 255, 255))  # White
     lives_text = font.render("Lives: 3" if question_number == 15 else "Lives: 1", True, (255, 0, 0))  # Red
-    target_text = font.render(f"Target Score: {10 if question_number == 15 else 5}", True, (0, 0, 255))  # Blue
+    target_text = font.render(f"Target Score: {10 if question_number == 15 else 8}", True, (0, 0, 255))  # Blue
     
     # Display text on the screen
     win.blit(score_text, (10, 10))  
@@ -357,29 +357,29 @@ def redraw_window(question_number):
 
 
 
-
 def end_screen(question_number, score, success=False):
     global win
     pygame.mixer.music.pause()
     
-    target_score = 10 if question_number == 15 else 5
+    target_score = 10 if question_number == 15 else 8
     
     if not success:
         failure_sound.play()
         pygame.time.delay(int(failure_sound.get_length() * 1000))
     else:
-        win.fill((0, 0, 0))
-        font = pygame.font.SysFont("Arial", 40)
-        message = font.render("Well Done!", True, (0, 255, 0))
-        score_text = font.render(f"Score: {score}", True, (0, 255, 0))
-        target_text = font.render(f"Target: {target_score}", True, (0, 255, 0))
-        question_text = font.render(f"Questions Attempted: {question_number}", True, (0, 255, 0))
-        win.blit(message, (300, 200))
-        win.blit(score_text, (300, 250))
-        win.blit(target_text, (300, 300))
-        win.blit(question_text, (300, 350))
-        pygame.display.update()
-        pygame.time.delay(8000)
+        if question_number in [3, 6, 9, 12]:  # Only show message for these numbers
+            win.fill((0, 0, 0))
+            font = pygame.font.SysFont("Arial", 40)
+            message = font.render("Well Done!", True, (0, 255, 0))
+            score_text = font.render(f"Score: {score}", True, (0, 255, 0))
+            target_text = font.render(f"Target: {target_score}", True, (0, 255, 0))
+            question_text = font.render(f"Questions Attempted: {question_number}", True, (0, 255, 0))
+            win.blit(message, (300, 200))
+            win.blit(score_text, (300, 250))
+            win.blit(target_text, (300, 300))
+            win.blit(question_text, (300, 350))
+            pygame.display.update()
+            pygame.time.delay(8000)
     
     pygame.display.quit()
     return score
@@ -423,48 +423,55 @@ def start_game(question_number):
         pygame.mixer.music.play(-1)
     
     run = True
-    target_score = 10 if question_number == 15 else 5
+    target_score = 10 if question_number == 15 else 8
     allow_continuation = question_number in [3, 6, 9, 12]
     
     if question_number == 15:
         remaining_time = 120
     elif question_number in [3, 6, 9, 12]:  
-        remaining_time = 30
+        remaining_time = 40
     else:
         remaining_time = 20
 
     while run:
         clock.tick(speed)
-        elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000
-        
+        elapsed_time = (pygame.time.get_ticks() - start_ticks) // 1000  
+
         if elapsed_time >= remaining_time:
             if question_number == 15 and score < target_score and lives == 0:
                 show_compensation_message()
                 return  # Ensure game exits instead of lingering
             return end_screen(question_number, score, success=True)
-        
-        if not allow_continuation and score >= target_score and elapsed_time >= remaining_time:
-            return end_screen(question_number, score, success=True)
-        
-        score = (speed // 8) - 2  # Score increases slightly faster than before
 
+        if not allow_continuation and score >= target_score and question_number != 15:  
+            return end_screen(question_number, score, success=True)
+
+
+        score = (speed // 8) - 2  # Score increases slightly faster than before
 
         for obstacle in obstacles[:]:
             obstacle.move()
             if obstacle.collide(runner.hitbox):
                 lives -= 1
-                if lives == 0 and question_number == 15 and score < target_score:
+                # If the target score is already reached, go to end screen instead of quitting
+                if score >= target_score and question_number in [3, 6, 9, 12]:
+                    return end_screen(question_number, score, success=True)
+                elif lives == 0 and question_number == 15 and score < target_score:
                     return show_compensation_message()
                 return end_screen(question_number, score)
-        
+
         for ball in balls[:]:
             if ball.y > runner.y - 100:
                 ball.move()
             if ball.collide(runner.hitbox):
                 lives -= 1
-                if lives == 0 and question_number == 15 and score < target_score:
+                # Ensure end screen appears if target score is reached
+                if score >= target_score and question_number in [3, 6, 9, 12]:
+                    return end_screen(question_number, score, success=True)
+                elif lives == 0 and question_number == 15 and score < target_score:
                     return show_compensation_message()
                 return end_screen(question_number, score)
+
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
