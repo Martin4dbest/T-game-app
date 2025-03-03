@@ -2105,7 +2105,7 @@ def main_game(category, username):
     labelA = Label(bottomFrame,font=("arial",16,"bold"), text="A: ", bg="black", fg="white",)
     labelA.place(x=60,y=110)
 
-    optionButton1=Button(bottomFrame, text= First_options[0],font=("arial",10,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
+    optionButton1=Button(bottomFrame, text= First_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
 
     optionButton1.place(x=100, y=100)
 

@@ -1910,22 +1910,22 @@ def main_game(category, username):
     labelA = Label(bottomFrame,font=("arial",16,"bold"), text="A: ", bg="black", fg="white",)
     labelA.place(x=60,y=110)
 
-    optionButton1=Button(bottomFrame, text= First_options[0],font=("arial",10,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
+    optionButton1=Button(bottomFrame, text= First_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130,width=20)
 
     optionButton1.place(x=100, y=100)
 
-    labelB = Label(bottomFrame,font=("arial",15,"bold"), text="B: ", bg="black", fg="white",)
+    labelB = Label(bottomFrame,font=("arial",16,"bold"), text="B: ", bg="black", fg="white",)
     labelB.place(x=330,y=110)
-    optionButton2=Button(bottomFrame, text= Second_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#idth=20)
+    optionButton2=Button(bottomFrame, text= Second_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130,width=20)#idth=20)
     optionButton2.place(x=370, y=100)
 
     labelC = Label(bottomFrame,font=("arial",16,"bold"), text="C: ", bg="black", fg="white",)
     labelC.place(x=60,y=190)
-    optionButton3=Button(bottomFrame, text= Third_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#,wraplength=200,width=20)
+    optionButton3=Button(bottomFrame, text= Third_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130,width=20)#,wraplength=200,width=20)
     optionButton3.place(x=100, y=180)
     labelD = Label(bottomFrame,font=("arial",16,"bold"), text="D: ", bg="black", fg="white",)
     labelD.place(x=330,y=190)
-    optionButton4=Button(bottomFrame, text= Fourth_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130)#width=20)
+    optionButton4=Button(bottomFrame, text= Fourth_options[0],font=("arial",15,"bold"),bg="black", fg="white",bd=0,activebackground="black",activeforeground='white',cursor="hand2",wraplength=130,width=20)
     optionButton4.place(x=370, y=180)
     #===========================Progress Bar(AUDIENCE POLL BUTTONS AND LABEL)=================================#
     progressBarA=Progressbar(root,orient=VERTICAL,length=120)
